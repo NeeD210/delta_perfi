@@ -10,6 +10,9 @@ defmodule PerfiDelta.Accounts.User do
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
     field :authenticated_at, :utc_datetime, virtual: true
+    field :onboarding_step, :integer, default: 1
+    field :onboarding_completed, :boolean, default: false
+    field :onboarding_data, :map, default: %{}
 
     timestamps(type: :utc_datetime)
   end
@@ -129,4 +132,13 @@ defmodule PerfiDelta.Accounts.User do
     Pbkdf2.no_user_verify()
     false
   end
+
+  @doc """
+  Changeset for updating onboarding progress.
+  """
+  def onboarding_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:onboarding_step, :onboarding_completed, :onboarding_data])
+  end
 end
+

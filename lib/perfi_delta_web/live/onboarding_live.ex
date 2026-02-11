@@ -4,29 +4,41 @@ defmodule PerfiDeltaWeb.OnboardingLive do
   """
   use PerfiDeltaWeb, :live_view
 
+  alias PerfiDelta.Accounts
   alias PerfiDelta.Finance
   alias PerfiDelta.Finance.FinancialAccount
   alias PerfiDelta.Services.ExchangeRateService
+  import PerfiDeltaWeb.Helpers.NumberHelpers, only: [parse_currency: 1, format_currency: 1, add_thousands_separator: 1]
 
   @impl true
   def mount(_params, _session, socket) do
     user = socket.assigns.current_scope.user
     accounts = if user, do: Finance.list_accounts(user.id), else: []
 
+    # Cargar paso y datos guardados del usuario
+    saved_step = user.onboarding_step || 1
+    saved_data = user.onboarding_data || %{}
+
+    # Restaurar balances (convertir keys de string a uuid)
+    saved_balances = restore_balances(saved_data["balances"])
+    saved_liability_details = restore_liability_details(saved_data["liability_details"])
+    saved_preferences = restore_preferences(saved_data["preferences"])
+    saved_income = restore_income(saved_data["income"])
+
     socket =
       socket
       |> assign(:page_title, "Setup Inicial")
-      |> assign(:step, 1)
+      |> assign(:step, saved_step)
       |> assign(:accounts, accounts)
-      |> assign(:balances, %{})
-      |> assign(:liability_details, %{})
+      |> assign(:balances, saved_balances)
+      |> assign(:liability_details, saved_liability_details)
       |> assign(:show_form, false)
       |> assign(:form_type, nil)
       |> assign(:form, to_form(Finance.change_account(%FinancialAccount{})))
       |> assign(:dolar_blue, nil)
       |> assign(:loading, false)
-      |> assign(:preferences, %{investments: false, debts: false})
-      |> assign(:income, %{ars: Decimal.new(0), usd: Decimal.new(0), total_usd: Decimal.new(0)})
+      |> assign(:preferences, saved_preferences)
+      |> assign(:income, saved_income)
 
     # Fetch dolar rate
     send(self(), :fetch_rate)
@@ -64,6 +76,10 @@ defmodule PerfiDeltaWeb.OnboardingLive do
         _ -> step
       end
 
+    # Persistir el paso en la base de datos
+    user = socket.assigns.current_scope.user
+    Accounts.update_onboarding_step(user, next)
+
     socket =
       socket
       |> assign(:step, next)
@@ -88,6 +104,10 @@ defmodule PerfiDeltaWeb.OnboardingLive do
         _ -> 1
       end
 
+    # Persistir el paso en la base de datos
+    user = socket.assigns.current_scope.user
+    Accounts.update_onboarding_step(user, prev)
+
     {:noreply, assign(socket, :step, prev)}
   end
 
@@ -95,7 +115,9 @@ defmodule PerfiDeltaWeb.OnboardingLive do
     type_atom = String.to_existing_atom(type)
     new_value = !Map.get(socket.assigns.preferences, type_atom)
     preferences = Map.put(socket.assigns.preferences, type_atom, new_value)
-    {:noreply, assign(socket, :preferences, preferences)}
+    socket = assign(socket, :preferences, preferences)
+    persist_onboarding_data(socket)
+    {:noreply, socket}
   end
 
   def handle_event("show_form", %{"type" => type}, socket) do
@@ -266,7 +288,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
   end
 
   def handle_event("update_balance", %{"account_id" => account_id, "value" => value}, socket) do
-    amount = parse_decimal(value)
+    amount = parse_currency(value)
     account = Enum.find(socket.assigns.accounts, &(&1.id == account_id))
 
     {:ok, amount_usd} = ExchangeRateService.convert_to_usd(amount, account.currency)
@@ -284,7 +306,9 @@ defmodule PerfiDeltaWeb.OnboardingLive do
         amount_usd: amount_usd
       })
 
-    {:noreply, assign(socket, :balances, balances)}
+    socket = assign(socket, :balances, balances)
+    persist_onboarding_data(socket)
+    {:noreply, socket}
   end
 
   def handle_event("update_liability", %{"account_id" => account_id, "field" => field, "value" => value}, socket) do
@@ -292,7 +316,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
     default = %{current_period_balance: Decimal.new(0), future_installments_balance: Decimal.new(0)}
     existing = Map.get(socket.assigns.liability_details, account_id, default)
 
-    amount = parse_decimal(value)
+    amount = parse_currency(value)
 
     # Actualizar solo el campo que cambió
     new_details =
@@ -316,32 +340,39 @@ defmodule PerfiDeltaWeb.OnboardingLive do
         amount_usd: Decimal.negate(Decimal.abs(total_usd))
       })
 
-    {:noreply,
+    socket =
      socket
      |> assign(:liability_details, details)
-     |> assign(:balances, balances)}
+     |> assign(:balances, balances)
+    
+    persist_onboarding_data(socket)
+    {:noreply, socket}
   end
 
   def handle_event("update_income", %{"currency" => "ARS", "value" => value}, socket) do
-    ars = parse_decimal(value)
+    ars = parse_currency(value)
     usd = socket.assigns.income.usd
     
     {:ok, ars_in_usd} = ExchangeRateService.convert_to_usd(ars, "ARS")
     total_usd = Decimal.add(ars_in_usd, usd)
     
     income = %{socket.assigns.income | ars: ars, total_usd: total_usd}
-    {:noreply, assign(socket, :income, income)}
+    socket = assign(socket, :income, income)
+    persist_onboarding_data(socket)
+    {:noreply, socket}
   end
 
   def handle_event("update_income", %{"currency" => "USD", "value" => value}, socket) do
-    usd = parse_decimal(value)
+    usd = parse_currency(value)
     ars = socket.assigns.income.ars
     
     {:ok, ars_in_usd} = ExchangeRateService.convert_to_usd(ars, "ARS")
     total_usd = Decimal.add(ars_in_usd, usd)
     
     income = %{socket.assigns.income | usd: usd, total_usd: total_usd}
-    {:noreply, assign(socket, :income, income)}
+    socket = assign(socket, :income, income)
+    persist_onboarding_data(socket)
+    {:noreply, socket}
   end
 
   def handle_event("complete_onboarding", _, socket) do
@@ -392,6 +423,10 @@ defmodule PerfiDeltaWeb.OnboardingLive do
       exchange_rate_blue: socket.assigns.dolar_blue
     })
 
+    # Marcar onboarding como completado
+    user = socket.assigns.current_scope.user
+    Accounts.complete_onboarding(user)
+
     {:noreply,
      socket
      |> put_flash(:info, "¡Setup completado! Tu mapa financiero está listo.")
@@ -416,24 +451,83 @@ defmodule PerfiDeltaWeb.OnboardingLive do
   end
   defp maybe_auto_show_form(socket, _step), do: assign(socket, :show_form, false)
 
-  defp parse_decimal(""), do: Decimal.new(0)
-  defp parse_decimal(nil), do: Decimal.new(0)
+  # --- Persistence Helpers ---
 
-  defp parse_decimal(str) when is_binary(str) do
-    # Si tiene coma, asumimos formato local (comas para decimales, puntos para miles)
-    if String.contains?(str, ",") do
-      str
-      |> String.replace(".", "")
-      |> String.replace(",", ".")
-      |> Decimal.new()
-    else
-      # Si no tiene coma, puede ser un decimal directo de Elixir (con punto)
-      # O puede ser un entero. Phoenix nos va a mandar puntos si viene de Decimal.to_string
-      Decimal.new(str)
-    end
-  rescue
-    _ -> Decimal.new(0)
+  defp persist_onboarding_data(socket) do
+    user = socket.assigns.current_scope.user
+    data = %{
+      "balances" => serialize_balances(socket.assigns.balances),
+      "liability_details" => serialize_liability_details(socket.assigns.liability_details),
+      "preferences" => socket.assigns.preferences,
+      "income" => serialize_income(socket.assigns.income)
+    }
+    Accounts.update_onboarding_data(user, data)
+    socket
   end
+
+  defp serialize_balances(balances) do
+    Map.new(balances, fn {k, v} ->
+      {k, %{"amount_nominal" => Decimal.to_string(v.amount_nominal), "amount_usd" => Decimal.to_string(v.amount_usd)}}
+    end)
+  end
+
+  defp serialize_liability_details(details) do
+    Map.new(details, fn {k, v} ->
+      {k, %{
+        "current_period_balance" => Decimal.to_string(v.current_period_balance),
+        "future_installments_balance" => Decimal.to_string(v.future_installments_balance),
+        "total_debt" => Decimal.to_string(Map.get(v, :total_debt, Decimal.new(0)))
+      }}
+    end)
+  end
+
+  defp serialize_income(income) do
+    %{
+      "ars" => Decimal.to_string(income.ars),
+      "usd" => Decimal.to_string(income.usd),
+      "total_usd" => Decimal.to_string(income.total_usd)
+    }
+  end
+
+  defp restore_balances(nil), do: %{}
+  defp restore_balances(data) when is_map(data) do
+    Map.new(data, fn {k, v} ->
+      {k, %{
+        amount_nominal: Decimal.new(v["amount_nominal"] || "0"),
+        amount_usd: Decimal.new(v["amount_usd"] || "0")
+      }}
+    end)
+  end
+
+  defp restore_liability_details(nil), do: %{}
+  defp restore_liability_details(data) when is_map(data) do
+    Map.new(data, fn {k, v} ->
+      {k, %{
+        current_period_balance: Decimal.new(v["current_period_balance"] || "0"),
+        future_installments_balance: Decimal.new(v["future_installments_balance"] || "0"),
+        total_debt: Decimal.new(v["total_debt"] || "0")
+      }}
+    end)
+  end
+
+  defp restore_preferences(nil), do: %{investments: false, debts: false}
+  defp restore_preferences(data) when is_map(data) do
+    %{
+      investments: data["investments"] || false,
+      debts: data["debts"] || false
+    }
+  end
+
+  defp restore_income(nil), do: %{ars: Decimal.new(0), usd: Decimal.new(0), total_usd: Decimal.new(0)}
+  defp restore_income(data) when is_map(data) do
+    %{
+      ars: Decimal.new(data["ars"] || "0"),
+      usd: Decimal.new(data["usd"] || "0"),
+      total_usd: Decimal.new(data["total_usd"] || "0")
+    }
+  end
+
+  # parse_currency imported from NumberHelpers
 
   defp step_name(1), do: "Bienvenida"
   defp step_name(2), do: "Preferencias"
@@ -533,7 +627,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
          <%= if @step == 8 do %>
           <button
             phx-click="complete_onboarding"
-            class="fab-button flex-1 h-14 rounded-xl touch-target"
+            class="fab-button-pill flex-1 h-14 touch-target"
             disabled={Enum.empty?(@accounts)}
           >
             <span class="hero-check mr-2"></span>
@@ -542,7 +636,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
         <% else %>
           <button
             phx-click="next_step"
-            class="fab-button flex-1 h-14 rounded-xl touch-target"
+            class="fab-button-pill flex-1 h-14 touch-target"
             disabled={@step >= 3 and @step <= 5 and Enum.empty?(Enum.filter(@accounts, & &1.type == current_step_type(@step))) and false}
           >
             <%= if @step == 1, do: "Comenzar", else: "Siguiente" %>
@@ -1224,13 +1318,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
 
   # Helpers
   
-  defp format_currency(nil), do: "-"
-  defp format_currency(decimal) do
-    decimal
-    |> Decimal.round(0)
-    |> Decimal.to_string()
-    |> add_thousands_separator()
-  end
+  # format_currency delegated to NumberHelpers via import
 
   defp placeholder_for_type(:liquid), do: "Ej: Banco Galicia, Efectivo"
   defp placeholder_for_type(:investment), do: "Ej: Binance BTC, FCI, Acciones"
@@ -1281,14 +1369,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
     |> add_thousands_separator()
   end
 
-  defp add_thousands_separator(str) do
-    str
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.join(".")
-    |> String.reverse()
-  end
+  # add_thousands_separator/1 delegated to NumberHelpers via import
 
   defp sum_by_type(balances, accounts, type) do
     accounts

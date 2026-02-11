@@ -32,8 +32,11 @@ defmodule PerfiDeltaWeb.ProfileLive do
       <!-- Settings List -->
       <div class="space-y-3">
         <!-- Theme Toggle -->
-        <div class="list-item-glass animate-fade-in stagger-1">
-          <div class="icon-badge icon-badge-investment">
+        <div 
+          class="list-item-glass animate-fade-in stagger-1 cursor-pointer group"
+          phx-click={Phoenix.LiveView.JS.dispatch("phx:toggle-theme")}
+        >
+          <div class="icon-badge icon-badge-investment transition-transform group-hover:scale-110">
             <span class="hero-sun dark:hidden"></span>
             <span class="hero-moon hidden dark:block"></span>
           </div>
@@ -41,13 +44,7 @@ defmodule PerfiDeltaWeb.ProfileLive do
             <p class="font-medium">Tema</p>
             <p class="text-xs opacity-50">Cambiar apariencia</p>
           </div>
-          <button 
-            phx-click={Phoenix.LiveView.JS.dispatch("phx:toggle-theme")}
-            class="btn btn-sm btn-glass"
-          >
-            <span class="dark:hidden">Oscuro</span>
-            <span class="hidden dark:block">Claro</span>
-          </button>
+          <span class="hero-chevron-right opacity-40"></span>
         </div>
 
         <!-- Settings Link -->

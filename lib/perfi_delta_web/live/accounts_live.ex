@@ -3,6 +3,7 @@ defmodule PerfiDeltaWeb.AccountsLive do
 
   alias PerfiDelta.Finance
   alias PerfiDelta.Finance.FinancialAccount
+  import PerfiDeltaWeb.Helpers.NumberHelpers, only: [format_currency: 2, add_thousands_separator: 1]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -372,28 +373,14 @@ defmodule PerfiDeltaWeb.AccountsLive do
             "-"
 
           amount ->
-            formatted = format_currency(Decimal.abs(amount))
+            formatted = format_currency(Decimal.abs(amount), [])
             prefix = if Decimal.negative?(amount), do: "-", else: ""
             "#{prefix}#{formatted}"
         end
     end
   end
 
-  defp format_currency(decimal) do
-    decimal
-    |> Decimal.round(0)
-    |> Decimal.to_string()
-    |> add_thousands_separator()
-  end
-
-  defp add_thousands_separator(str) do
-    str
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.join(".")
-    |> String.reverse()
-  end
+  # format_currency and add_thousands_separator delegated to NumberHelpers via import
 
   defp account_icon(:liquid), do: "hero-banknotes"
   defp account_icon(:investment), do: "hero-chart-bar"

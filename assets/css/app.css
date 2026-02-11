@@ -358,6 +358,30 @@
   font-size: 1.5rem;
 }
 
+/* FAB Pill variant - for onboarding buttons */
+.fab-button-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, oklch(55% 0.2 260) 0%, oklch(50% 0.22 280) 100%);
+  color: white;
+  box-shadow: var(--shadow-fab);
+  transition: all 0.3s var(--spring-bounce);
+  border: none;
+  cursor: pointer;
+  border-radius: 0.75rem;
+  font-weight: 600;
+}
+
+.fab-button-pill:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 32px oklch(50% 0.2 260 / 0.4);
+}
+
+.fab-button-pill:active {
+  transform: scale(0.98);
+}
+
 /* --- Icon Badges por Categoría --- */
 .icon-badge {
   width: 40px;
@@ -892,4 +916,9 @@
 
 [data-theme="dark"] .account-toggle-option:hover:not(.active) {
   color: rgba(255, 255, 255, 0.7);
+}
+
+/* --- Account Toggle (2 items variant) --- */
+.account-toggle-2 .account-toggle-pill {
+  width: calc(50% - 4px);
 }

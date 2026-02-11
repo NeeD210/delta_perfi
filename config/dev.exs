@@ -1,5 +1,7 @@
 import Config
 
+config :perfi_delta, PerfiDeltaWeb.Endpoint, server: true
+
 # Configure your database
 config :perfi_delta, PerfiDelta.Repo,
   username: "postgres",

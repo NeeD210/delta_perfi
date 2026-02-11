@@ -3,6 +3,7 @@ defmodule PerfiDeltaWeb.DashboardLive do
 
   alias PerfiDelta.Finance
   alias PerfiDelta.Services.ExchangeRateService
+  import PerfiDeltaWeb.Helpers.NumberHelpers, only: [format_currency: 2]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -22,9 +23,10 @@ defmodule PerfiDeltaWeb.DashboardLive do
       |> assign(:accounts, accounts)
       |> assign(:dolar_rate, dolar_rate)
       |> assign(:display_currency, "USD")
-      |> assign(:needs_onboarding, Enum.empty?(accounts))
+      |> assign(:needs_onboarding, !socket.assigns.current_scope.user.onboarding_completed)
 
-    if Enum.empty?(accounts) do
+    # Redirigir si no completó el onboarding
+    if !socket.assigns.current_scope.user.onboarding_completed do
       {:ok, push_navigate(socket, to: ~p"/onboarding")}
     else
       {:ok, socket}
@@ -236,13 +238,8 @@ defmodule PerfiDeltaWeb.DashboardLive do
     "#{day_name}, #{now.day} de #{month_name}"
   end
 
-  defp format_currency(nil), do: "-"
-  defp format_currency(decimal) do
-    decimal
-    |> Decimal.round(0)
-    |> Decimal.to_string()
-    |> add_thousands_separator()
-  end
+  defp format_display(nil), do: "-"
+  defp format_display(decimal), do: format_currency(decimal, [])
 
   defp convert_usd_to_display(amount_usd, "USD", _dolar_rate), do: amount_usd
   defp convert_usd_to_display(amount_usd, "ARS", nil), do: amount_usd
@@ -257,24 +254,17 @@ defmodule PerfiDeltaWeb.DashboardLive do
   defp format_display_currency(nil, _currency, _rate), do: "-"
   defp format_display_currency(amount_usd, display_currency, dolar_rate) do
     converted = convert_usd_to_display(amount_usd, display_currency, dolar_rate)
-    "#{currency_symbol(display_currency)} #{format_currency(converted)}"
+    "#{currency_symbol(display_currency)} #{format_display(converted)}"
   end
 
   defp format_signed_display_currency(nil, _currency, _rate), do: "-"
   defp format_signed_display_currency(amount_usd, display_currency, dolar_rate) do
     converted = convert_usd_to_display(amount_usd, display_currency, dolar_rate)
     prefix = if Decimal.positive?(converted), do: "+", else: ""
-    "#{prefix}#{currency_symbol(display_currency)} #{format_currency(Decimal.abs(converted))}"
+    "#{prefix}#{currency_symbol(display_currency)} #{format_display(Decimal.abs(converted))}"
   end
 
-  defp add_thousands_separator(str) do
-    str
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.join(".")
-    |> String.reverse()
-  end
+  # format_currency and add_thousands_separator delegated to NumberHelpers via import
 
   defp format_month(month) do
     months = ~w(Enero Febrero Marzo Abril Mayo Junio Julio Agosto Septiembre Octubre Noviembre Diciembre)
@@ -353,7 +343,7 @@ defmodule PerfiDeltaWeb.DashboardLive do
 
           amount_usd ->
             converted = convert_usd_to_display(amount_usd, display_currency, dolar_rate)
-            formatted = format_currency(Decimal.abs(converted))
+            formatted = format_display(Decimal.abs(converted))
             prefix = if Decimal.negative?(converted), do: "-", else: ""
             "#{prefix}#{currency_symbol(display_currency)} #{formatted}"
         end

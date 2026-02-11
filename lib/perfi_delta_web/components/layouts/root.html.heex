@@ -33,6 +33,11 @@
         }
         window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
         window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
+        window.addEventListener("phx:toggle-theme", () => {
+          const current = document.documentElement.getAttribute("data-theme") || "system";
+          const newTheme = current === "dark" ? "light" : "dark";
+          setTheme(newTheme);
+        });
       })();
     </script>
     <style>

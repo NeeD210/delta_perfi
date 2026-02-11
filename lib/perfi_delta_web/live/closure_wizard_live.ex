@@ -6,6 +6,7 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
 
   alias PerfiDelta.Finance
   alias PerfiDelta.Services.ExchangeRateService
+  import PerfiDeltaWeb.Helpers.NumberHelpers, only: [parse_currency: 1, format_currency: 2, format_signed: 1, format_rate: 1, format_smart_currency: 1]
 
   @steps [:rates, :assets, :liabilities, :flows, :income, :result]
 
@@ -16,6 +17,10 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
     # Obtener o crear snapshot draft para el mes actual
     {:ok, snapshot} = Finance.get_or_create_current_snapshot(user_id)
     accounts = Finance.list_accounts(user_id)
+
+    # Pre-cargar saldos del mes anterior
+    previous_balances = Finance.get_previous_balances_for_wizard(user_id)
+    previous_snapshot = Finance.get_latest_confirmed_snapshot(user_id)
 
     socket =
       socket
@@ -28,13 +33,18 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
       |> assign(:loading_rates, true)
       |> assign(:dolar_blue, nil)
       |> assign(:dolar_mep, nil)
-      |> assign(:balances, %{})
+      |> assign(:balances, previous_balances)
+      |> assign(:previous_balances, previous_balances)
+      |> assign(:previous_snapshot, previous_snapshot)
       |> assign(:liability_details, %{})
       |> assign(:flows, [])
       |> assign(:has_new_flows, false)
       |> assign(:flow_amount, "")
       |> assign(:flow_direction, :deposit)
+      |> assign(:income_ars, "")
+      |> assign(:income_usd, "")
       |> assign(:income, "")
+      |> assign(:assets_filter, :liquid)
       |> assign(:result, nil)
 
     # Fetch rates async
@@ -90,8 +100,13 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
      |> assign(:current_step, prev_step)}
   end
 
+  def handle_event("change_assets_filter", %{"type" => type}, socket) do
+    filter_type = String.to_existing_atom(type)
+    {:noreply, assign(socket, :assets_filter, filter_type)}
+  end
+
   def handle_event("update_balance", %{"account_id" => account_id, "amount" => amount}, socket) do
-    amount_decimal = parse_decimal(amount)
+    amount_decimal = parse_currency(amount)
     account = Finance.get_account!(account_id)
 
     # Convertir a USD
@@ -117,8 +132,8 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
   def handle_event("update_liability_detail", params, socket) do
     %{"account_id" => account_id, "current" => current, "future" => future} = params
 
-    current_dec = parse_decimal(current)
-    future_dec = parse_decimal(future)
+    current_dec = parse_currency(current)
+    future_dec = parse_currency(future)
     total = Decimal.add(current_dec, future_dec)
 
     details =
@@ -150,7 +165,7 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
   end
 
   def handle_event("add_flow", _, socket) do
-    amount = parse_decimal(socket.assigns.flow_amount)
+    amount = parse_currency(socket.assigns.flow_amount)
     direction = socket.assigns.flow_direction
 
     if Decimal.positive?(amount) do
@@ -184,113 +199,93 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
     {:noreply, assign(socket, :flow_direction, direction)}
   end
 
+  def handle_event("update_income", %{"value" => value, "currency" => currency}, socket) do
+    socket =
+      case currency do
+        "ARS" -> assign(socket, :income_ars, value)
+        "USD" -> assign(socket, :income_usd, value)
+        _ -> socket
+      end
+
+    # Calcular total en USD
+    ars = parse_currency(socket.assigns.income_ars)
+    usd = parse_currency(socket.assigns.income_usd)
+    blue = socket.assigns.dolar_blue || Decimal.new(1)
+
+    ars_in_usd =
+      if Decimal.positive?(blue) do
+        Decimal.div(ars, blue) |> Decimal.round(2)
+      else
+        Decimal.new(0)
+      end
+
+    total_usd = Decimal.add(usd, ars_in_usd)
+    {:noreply, assign(socket, :income, Decimal.to_string(total_usd))}
+  end
+
+  # Fallback para evento sin currency (compatibilidad)
   def handle_event("update_income", %{"value" => value}, socket) do
     {:noreply, assign(socket, :income, value)}
   end
 
   def handle_event("confirm_closure", _, socket) do
-    _user_id = socket.assigns.current_scope.user.id
     snapshot = socket.assigns.snapshot
     result = socket.assigns.result
 
-    # Guardar todos los balances
-    Enum.each(socket.assigns.balances, fn {account_id, balance_data} ->
-      Finance.upsert_balance(%{
-        snapshot_id: snapshot.id,
-        account_id: account_id,
-        amount_nominal: balance_data.amount_nominal,
-        amount_usd: balance_data.amount_usd
-      })
-    end)
+    # Preparar datos para commit atómico
+    balances_list =
+      Enum.map(socket.assigns.balances, fn {account_id, balance_data} ->
+        %{
+          account_id: account_id,
+          amount_nominal: balance_data.amount_nominal,
+          amount_usd: balance_data.amount_usd
+        }
+      end)
 
-    # Guardar detalles de liability
-    Enum.each(socket.assigns.liability_details, fn {account_id, detail} ->
-      # Obtener el balance correspondiente
-      case Finance.upsert_balance(%{
-             snapshot_id: snapshot.id,
-             account_id: account_id,
-             amount_nominal: detail.total_debt,
-             amount_usd: socket.assigns.balances[account_id].amount_usd
-           }) do
-        {:ok, balance} ->
-          Finance.upsert_liability_detail(balance.id, detail)
+    closure_data = %{
+      balances: balances_list,
+      liability_details: socket.assigns.liability_details,
+      flows: socket.assigns.flows,
+      result: result,
+      exchange_rates: %{
+        blue: socket.assigns.dolar_blue,
+        mep: socket.assigns.dolar_mep
+      }
+    }
 
-        _ ->
-          nil
-      end
-    end)
+    # Commit atómico - TODO o NADA
+    case Finance.commit_closure_atomic(snapshot, closure_data) do
+      {:ok, _results} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "¡Cierre completado!")
+         |> push_navigate(to: ~p"/")}
 
-    # Guardar flujos de inversión
-    Enum.each(socket.assigns.flows, fn flow ->
-      Finance.create_investment_flow(%{
-        snapshot_id: snapshot.id,
-        amount_usd: flow.amount_usd,
-        direction: flow.direction
-      })
-    end)
-
-    # Confirmar snapshot
-    {:ok, _snapshot} =
-      Finance.confirm_snapshot(snapshot, %{
-        total_income_usd: result.total_income_usd,
-        total_net_worth_usd: result.total_net_worth_usd,
-        total_savings_usd: result.total_savings_usd,
-        total_yield_usd: result.total_yield_usd,
-        exchange_rate_blue: socket.assigns.dolar_blue,
-        exchange_rate_mep: socket.assigns.dolar_mep
-      })
-
-    {:noreply,
-     socket
-     |> put_flash(:info, "¡Cierre completado!")
-     |> push_navigate(to: ~p"/")}
+      {:error, failed_operation, _failed_value, _changes_so_far} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Error al guardar: #{failed_operation}")}
+    end
   end
 
   defp maybe_calculate_result(%{assigns: %{current_step: :result}} = socket) do
-    income = parse_decimal(socket.assigns.income)
-    snapshot_id = socket.assigns.snapshot.id
+    income = parse_currency(socket.assigns.income)
 
-    # Primero guardar los balances temporalmente para el cálculo
-    Enum.each(socket.assigns.balances, fn {account_id, balance_data} ->
-      Finance.upsert_balance(%{
-        snapshot_id: snapshot_id,
-        account_id: account_id,
-        amount_nominal: balance_data.amount_nominal,
-        amount_usd: balance_data.amount_usd
-      })
-    end)
+    # Calcular en memoria SIN persistir datos
+    result =
+      Finance.calculate_snapshot_preview(
+        socket.assigns.balances,
+        socket.assigns.flows,
+        income,
+        socket.assigns.previous_snapshot
+      )
 
-    # Guardar flows temporalmente
-    Enum.each(socket.assigns.flows, fn flow ->
-      Finance.create_investment_flow(%{
-        snapshot_id: snapshot_id,
-        amount_usd: flow.amount_usd,
-        direction: flow.direction
-      })
-    end)
-
-    # Calcular
-    result = Finance.calculate_snapshot_values(snapshot_id, income)
     assign(socket, :result, result)
   end
 
   defp maybe_calculate_result(socket), do: socket
 
-  defp parse_decimal(""), do: Decimal.new(0)
-  defp parse_decimal(nil), do: Decimal.new(0)
-
-  defp parse_decimal(str) when is_binary(str) do
-    if String.contains?(str, ",") do
-      str
-      |> String.replace(".", "")
-      |> String.replace(",", ".")
-      |> Decimal.new()
-    else
-      Decimal.new(str)
-    end
-  rescue
-    _ -> Decimal.new(0)
-  end
+  # parse_currency imported from NumberHelpers
 
   @impl true
   def render(assigns) do
@@ -325,6 +320,7 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
             <.step_assets
               accounts={filter_by_types(@accounts, [:liquid, :investment])}
               balances={@balances}
+              assets_filter={@assets_filter}
             />
 
           <% :liabilities -> %>
@@ -343,7 +339,12 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
             />
 
           <% :income -> %>
-            <.step_income income={@income} dolar_blue={@dolar_blue} />
+            <.step_income
+              income={@income}
+              income_ars={@income_ars}
+              income_usd={@income_usd}
+              dolar_blue={@dolar_blue}
+            />
 
           <% :result -> %>
             <.step_result result={@result} snapshot={@snapshot} />
@@ -390,32 +391,29 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
   defp step_rates(assigns) do
     ~H"""
     <div class="text-center">
-      <h2 class="text-2xl font-bold mb-2">Cotizaciones del Día</h2>
-      <p class="text-base-content/60 mb-8">Obteniendo las cotizaciones actuales...</p>
+      <h2 class="text-2xl font-bold mb-2">Cierre de Mes</h2>
+      <p class="text-base-content/60 mb-8">Vamos a actualizar tus saldos y calcular tu progreso.</p>
 
       <%= if @loading do %>
-        <div class="flex justify-center py-12">
-          <span class="loading loading-spinner loading-lg"></span>
+        <div class="flex flex-col items-center py-12">
+          <span class="loading loading-spinner loading-lg mb-4"></span>
+          <p class="text-base-content/60">Preparando todo...</p>
         </div>
       <% else %>
-        <div class="grid grid-cols-2 gap-4">
-          <div class="card-zen p-6">
-            <p class="text-sm text-base-content/60 mb-1">Dólar Blue</p>
-            <p class="text-3xl font-mono-numbers font-bold">
-              $<%= format_rate(@dolar_blue) %>
-            </p>
+        <div class="text-left space-y-3">
+          <div class="flex items-center gap-3 text-base-content/70">
+            <span class="hero-check-circle text-success"></span>
+            <span>Actualizaremos tus cuentas y deudas</span>
           </div>
-          <div class="card-zen p-6">
-            <p class="text-sm text-base-content/60 mb-1">Dólar MEP</p>
-            <p class="text-3xl font-mono-numbers font-bold">
-              $<%= format_rate(@dolar_mep) %>
-            </p>
+          <div class="flex items-center gap-3 text-base-content/70">
+            <span class="hero-check-circle text-success"></span>
+            <span>Calcularemos cuánto ahorraste</span>
+          </div>
+          <div class="flex items-center gap-3 text-base-content/70">
+            <span class="hero-check-circle text-success"></span>
+            <span>Verás el rendimiento de tus inversiones</span>
           </div>
         </div>
-
-        <p class="text-xs text-base-content/40 mt-6">
-          Usamos el Dólar Blue para convertir tus pesos a dólares.
-        </p>
       <% end %>
     </div>
     """
@@ -425,21 +423,45 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
     ~H"""
     <div>
       <h2 class="text-2xl font-bold mb-2">Activos</h2>
-      <p class="text-base-content/60 mb-6">Actualizá los saldos de tus cuentas e inversiones.</p>
+      <p class="text-base-content/60 mb-4">Actualizá los saldos de tus cuentas e inversiones.</p>
 
-      <%= if Enum.empty?(@accounts) do %>
+      <!-- Toggle de tipo -->
+      <div class="account-toggle account-toggle-2 mb-6">
+        <div class="account-toggle-pill" style={"transform: translateX(#{if @assets_filter == :liquid, do: "0%", else: "100%"});"}></div>
+        <button
+          phx-click="change_assets_filter"
+          phx-value-type="liquid"
+          class={"account-toggle-option #{if @assets_filter == :liquid, do: "active"}"}
+        >
+          <span class="hero-banknotes text-lg"></span>
+          <span>Líquidas</span>
+        </button>
+        <button
+          phx-click="change_assets_filter"
+          phx-value-type="investment"
+          class={"account-toggle-option #{if @assets_filter == :investment, do: "active"}"}
+        >
+          <span class="hero-chart-bar text-lg"></span>
+          <span>Inversiones</span>
+        </button>
+      </div>
+
+      <% filtered_accounts = Enum.filter(@accounts, & &1.type == @assets_filter) %>
+
+      <%= if Enum.empty?(filtered_accounts) do %>
         <div class="text-center py-8 text-base-content/60">
-          <p>No tenés cuentas de activos.</p>
+          <p>No tenés <%= if @assets_filter == :liquid, do: "cuentas líquidas", else: "inversiones" %>.</p>
           <.link navigate={~p"/cuentas"} class="btn btn-outline btn-sm mt-4">
             Agregar Cuentas
           </.link>
         </div>
       <% else %>
         <div class="space-y-4">
-          <%= for account <- @accounts do %>
+          <%= for account <- filtered_accounts do %>
             <div class="card-zen p-4">
               <div class="flex items-center gap-3 mb-3">
-                <div class={"w-10 h-10 rounded-full flex items-center justify-center #{account_bg_class(account.type)}"}>
+                <div class={"w-10 h-10 rounded-full flex items-center justify-center #{account_bg_class(account.type)}"}
+                >
                   <span class={"text-lg #{account_icon(account.type)}"}></span>
                 </div>
                 <div>
@@ -469,8 +491,7 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
     ~H"""
     <div>
       <h2 class="text-2xl font-bold mb-2">Pasivos</h2>
-      <p class="text-base-content/60 mb-2">El momento de la verdad.</p>
-      <p class="text-sm text-base-content/50 mb-6">
+      <p class="text-base-content/60 mb-6">
         Mirá el resumen de tu tarjeta y anotá cuánto debés.
       </p>
 
@@ -480,64 +501,66 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
           <p>¡No tenés deudas registradas!</p>
         </div>
       <% else %>
-        <div class="space-y-4">
-          <%= for account <- @accounts do %>
-            <div class="card-zen p-4 border-error/30">
+        <% grouped = Enum.group_by(@accounts, & &1.name) %>
+        <div class="space-y-6">
+          <%= for {name, group} <- grouped do %>
+            <div class="card-zen p-5 border-error/20">
               <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 rounded-full bg-error/10 flex items-center justify-center">
                   <span class="hero-credit-card text-lg text-error"></span>
                 </div>
                 <div>
-                  <p class="font-medium"><%= account.name %></p>
-                  <p class="text-xs text-base-content/50"><%= account.currency %></p>
+                  <p class="font-bold text-lg"><%= name %></p>
+                  <div class="flex gap-1">
+                    <%= for acc <- group do %>
+                      <span class="badge badge-xs badge-ghost"><%= acc.currency %></span>
+                    <% end %>
+                  </div>
                 </div>
               </div>
 
-              <div class="space-y-3">
-                <div>
-                  <label class="text-sm text-base-content/70 mb-1 block">
-                    ¿Cuánto vence este mes?
-                  </label>
-                  <input
-                    type="tel"
-                    inputmode="decimal"
-                    placeholder="Saldo del resumen"
-                    value={get_liability_current(@liability_details, account.id)}
-                    phx-blur="update_liability_detail"
-                    phx-value-account_id={account.id}
-                    phx-value-current={get_liability_current(@liability_details, account.id)}
-                    phx-value-future={get_liability_future(@liability_details, account.id)}
-                    class="input input-bordered input-currency w-full"
-                  />
-                </div>
-
-                <div>
-                  <label class="text-sm text-base-content/70 mb-1 block">
-                    ¿Cuánto suman tus cuotas futuras?
-                  </label>
-                  <p class="text-xs text-base-content/40 mb-2">
-                    Mirá el cuadro "Cuotas a Vencer" en tu resumen
-                  </p>
-                  <input
-                    type="tel"
-                    inputmode="decimal"
-                    placeholder="Cuotas pendientes"
-                    value={get_liability_future(@liability_details, account.id)}
-                    phx-blur="update_liability_detail"
-                    phx-value-account_id={account.id}
-                    phx-value-current={get_liability_current(@liability_details, account.id)}
-                    phx-value-future={get_liability_future(@liability_details, account.id)}
-                    class="input input-bordered input-currency w-full"
-                  />
-                </div>
-
-                <!-- Total -->
-                <%= if detail = Map.get(@liability_details, account.id) do %>
-                  <div class="bg-error/10 rounded-lg p-3 mt-2">
-                    <p class="text-sm text-base-content/70">Deuda Total</p>
-                    <p class="text-xl font-mono-numbers font-bold text-error">
-                      -$<%= format_decimal(detail.total_debt) %>
-                    </p>
+              <div class="space-y-6">
+                <%= for account <- group do %>
+                  <div class={if length(group) > 1, do: "pt-4 border-t border-error/10", else: ""}>
+                    <%= if length(group) > 1 do %>
+                      <p class="text-xs font-bold text-base-content/40 uppercase mb-3"><%= account.currency %></p>
+                    <% end %>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div>
+                        <label class="text-xs text-base-content/50 mb-1 block">Consumo Actual</label>
+                        <div class="relative">
+                          <input
+                            type="tel"
+                            inputmode="decimal"
+                            placeholder="0"
+                            value={get_liability_current(@liability_details, account.id)}
+                            phx-blur="update_liability_detail"
+                            phx-value-account_id={account.id}
+                            phx-value-current={get_liability_current(@liability_details, account.id)}
+                            phx-value-future={get_liability_future(@liability_details, account.id)}
+                            class="input input-bordered w-full text-right font-mono-numbers pr-14"
+                          />
+                          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/30 text-xs font-bold"><%= account.currency %></span>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="text-xs text-base-content/50 mb-1 block">Cuotas Futuras</label>
+                        <div class="relative">
+                          <input
+                            type="tel"
+                            inputmode="decimal"
+                            placeholder="0"
+                            value={get_liability_future(@liability_details, account.id)}
+                            phx-blur="update_liability_detail"
+                            phx-value-account_id={account.id}
+                            phx-value-current={get_liability_current(@liability_details, account.id)}
+                            phx-value-future={get_liability_future(@liability_details, account.id)}
+                            class="input input-bordered w-full text-right font-mono-numbers pr-14"
+                          />
+                          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/30 text-xs font-bold"><%= account.currency %></span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 <% end %>
               </div>
@@ -584,27 +607,33 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
 
       <%= if @has_new_flows do %>
         <div class="card-zen p-4 mb-4">
-          <div class="flex gap-2 mb-3">
-            <select
-              phx-change="update_flow_direction"
-              class="select select-bordered flex-shrink-0"
-            >
-              <option value="deposit" selected={@flow_direction == :deposit}>Depósito</option>
-              <option value="withdrawal" selected={@flow_direction == :withdrawal}>Retiro</option>
-            </select>
-            <input
-              type="tel"
-              inputmode="decimal"
-              placeholder="Monto en USD"
-              value={@flow_amount}
-              phx-keyup="update_flow_amount"
-              class="input input-bordered flex-1"
-            />
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs text-base-content/50 mb-1 block">Tipo de movimiento</label>
+              <select
+                phx-change="update_flow_direction"
+                class="select select-bordered w-full"
+              >
+                <option value="deposit" selected={@flow_direction == :deposit}>Depósito (puse plata)</option>
+                <option value="withdrawal" selected={@flow_direction == :withdrawal}>Retiro (saqué plata)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-base-content/50 mb-1 block">Monto en USD</label>
+              <input
+                type="tel"
+                inputmode="decimal"
+                placeholder="0"
+                value={@flow_amount}
+                phx-keyup="update_flow_amount"
+                class="input input-bordered w-full text-xl font-mono-numbers"
+              />
+            </div>
+            <button phx-click="add_flow" class="btn btn-primary w-full">
+              <span class="hero-plus mr-1"></span>
+              Agregar Flujo
+            </button>
           </div>
-          <button phx-click="add_flow" class="btn btn-outline btn-sm w-full">
-            <span class="hero-plus mr-1"></span>
-            Agregar Flujo
-          </button>
         </div>
 
         <!-- Lista de flujos -->
@@ -647,21 +676,52 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
       <h2 class="text-2xl font-bold mb-2">Ingresos</h2>
       <p class="text-base-content/60 mb-6">¿Cuánto ganaste este mes?</p>
 
-      <div class="card-zen p-4">
-        <label class="text-sm text-base-content/70 mb-2 block">
-          Ingreso total del mes (en USD)
-        </label>
-        <p class="text-xs text-base-content/40 mb-3">
-          Sueldo + extras. Si cobrás en pesos, convertí usando el dólar blue ($<%= format_rate(@dolar_blue) %>)
-        </p>
-        <input
-          type="tel"
-          inputmode="decimal"
-          placeholder="0"
-          value={@income}
-          phx-keyup="update_income"
-          class="input input-bordered input-currency w-full text-2xl"
-        />
+      <div class="card-zen p-5 space-y-4">
+        <div>
+          <label class="text-xs text-base-content/50 mb-1 block uppercase tracking-wider font-bold">Ingresos en Pesos</label>
+          <div class="relative">
+            <input
+              type="tel"
+              inputmode="decimal"
+              placeholder="0"
+              value={@income_ars}
+              phx-blur="update_income"
+              phx-value-currency="ARS"
+              class="input input-bordered w-full text-xl font-mono-numbers text-right pr-16"
+            />
+            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold">ARS</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs text-base-content/50 mb-1 block uppercase tracking-wider font-bold">Ingresos en Dólares</label>
+          <div class="relative">
+            <input
+              type="tel"
+              inputmode="decimal"
+              placeholder="0"
+              value={@income_usd}
+              phx-blur="update_income"
+              phx-value-currency="USD"
+              class="input input-bordered w-full text-xl font-mono-numbers text-right pr-16"
+            />
+            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold">USD</span>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-base-content/10">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-base-content/60">Total en USD</span>
+            <span class="text-2xl font-mono-numbers font-bold text-primary">
+              US$ <%= format_decimal(parse_currency(@income)) %>
+            </span>
+          </div>
+          <%= if Decimal.positive?(parse_currency(@income_ars)) and @dolar_blue do %>
+            <p class="text-xs text-base-content/40 text-right mt-1">
+              Convertido a dólar blue ($<%= format_rate(@dolar_blue) %>)
+            </p>
+          <% end %>
+        </div>
       </div>
     </div>
     """
@@ -751,7 +811,7 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
 
   defp get_balance_amount(balances, account_id) do
     case Map.get(balances, account_id) do
-      %{amount_nominal: amount} -> amount |> Decimal.to_string() |> String.replace(".", ",")
+      %{amount_nominal: amount} -> format_smart_currency(amount)
       _ -> ""
     end
   end
@@ -770,31 +830,10 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
     end
   end
 
-  defp format_rate(nil), do: "-"
-  defp format_rate(rate), do: Decimal.round(rate, 0) |> Decimal.to_string()
-
+  # format functions delegated to NumberHelpers
+  # Using wrapper to maintain existing function name in templates
   defp format_decimal(nil), do: "0"
-  defp format_decimal(decimal) do
-    decimal
-    |> Decimal.round(0)
-    |> Decimal.to_string()
-    |> add_thousands_separator()
-  end
-
-  defp format_signed(nil), do: "$0"
-  defp format_signed(decimal) do
-    prefix = if Decimal.positive?(decimal), do: "+", else: ""
-    "#{prefix}$#{format_decimal(Decimal.abs(decimal))}"
-  end
-
-  defp add_thousands_separator(str) do
-    str
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.join(".")
-    |> String.reverse()
-  end
+  defp format_decimal(decimal), do: format_currency(decimal, [])
 
   defp format_month(month) do
     months = ~w(Enero Febrero Marzo Abril Mayo Junio Julio Agosto Septiembre Octubre Noviembre Diciembre)
@@ -808,4 +847,6 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
   defp account_icon(:liquid), do: "hero-banknotes"
   defp account_icon(:investment), do: "hero-chart-bar"
   defp account_icon(:liability), do: "hero-credit-card"
+
+  # format_smart_currency imported from NumberHelpers
 end

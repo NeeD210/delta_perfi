@@ -322,4 +322,34 @@ defmodule PerfiDelta.Accounts do
       end
     end)
   end
+
+  ## Onboarding
+
+  @doc """
+  Updates the user's onboarding step.
+  """
+  def update_onboarding_step(user, step) when is_integer(step) do
+    user
+    |> User.onboarding_changeset(%{onboarding_step: step})
+    |> Repo.update()
+  end
+
+  @doc """
+  Marks the onboarding as completed.
+  """
+  def complete_onboarding(user) do
+    user
+    |> User.onboarding_changeset(%{onboarding_completed: true, onboarding_data: %{}})
+    |> Repo.update()
+  end
+
+  @doc """
+  Updates the temporary onboarding form data.
+  """
+  def update_onboarding_data(user, data) when is_map(data) do
+    user
+    |> User.onboarding_changeset(%{onboarding_data: data})
+    |> Repo.update()
+  end
 end
+

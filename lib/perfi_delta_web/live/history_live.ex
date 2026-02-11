@@ -2,6 +2,7 @@ defmodule PerfiDeltaWeb.HistoryLive do
   use PerfiDeltaWeb, :live_view
 
   alias PerfiDelta.Finance
+  import PerfiDeltaWeb.Helpers.NumberHelpers, only: [format_currency: 2, format_signed: 1, format_rate: 1]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -221,29 +222,7 @@ defmodule PerfiDeltaWeb.HistoryLive do
     Calendar.strftime(datetime, "%d/%m/%Y")
   end
 
+  # format functions delegated to NumberHelpers via import
   defp format_decimal(nil), do: "0"
-  defp format_decimal(decimal) do
-    decimal
-    |> Decimal.round(0)
-    |> Decimal.to_string()
-    |> add_thousands_separator()
-  end
-
-  defp format_signed(nil), do: "$0"
-  defp format_signed(decimal) do
-    prefix = if Decimal.positive?(decimal), do: "+", else: ""
-    "#{prefix}$#{format_decimal(Decimal.abs(decimal))}"
-  end
-
-  defp format_rate(nil), do: "-"
-  defp format_rate(rate), do: Decimal.round(rate, 0) |> Decimal.to_string()
-
-  defp add_thousands_separator(str) do
-    str
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.join(".")
-    |> String.reverse()
-  end
+  defp format_decimal(decimal), do: format_currency(decimal, [])
 end

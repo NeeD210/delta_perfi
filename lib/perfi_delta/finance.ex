@@ -348,4 +348,175 @@ defmodule PerfiDelta.Finance do
 
     get_snapshot_by_period(user_id, prev_month, prev_year)
   end
+
+  # ==============================================================================
+  # Preview Calculator (Sin persistencia)
+  # ==============================================================================
+
+  @doc """
+  Calcula el preview del snapshot SIN persistir datos.
+  Útil para mostrar al usuario antes de confirmar.
+
+  ## Parámetros
+    - balances_map: %{account_id => %{amount_nominal: Decimal, amount_usd: Decimal}}
+    - flows_list: [%{amount_usd: Decimal, direction: :deposit | :withdrawal}]
+    - income_usd: Decimal
+    - previous_snapshot: %Snapshot{} | nil
+  """
+  def calculate_snapshot_preview(balances_map, flows_list, income_usd, previous_snapshot) do
+    # Calcular Net Worth actual desde el map en memoria
+    net_worth =
+      balances_map
+      |> Map.values()
+      |> Enum.reduce(Decimal.new(0), fn %{amount_usd: amount_usd}, acc ->
+        Decimal.add(acc, amount_usd)
+      end)
+
+    # Net Worth anterior
+    previous_nw =
+      if previous_snapshot, do: previous_snapshot.total_net_worth_usd, else: Decimal.new(0)
+
+    # Calcular Net Flows desde la lista en memoria
+    net_flows =
+      Enum.reduce(flows_list, Decimal.new(0), fn flow, acc ->
+        signed =
+          case flow.direction do
+            :deposit -> flow.amount_usd
+            :withdrawal -> Decimal.negate(flow.amount_usd)
+          end
+
+        Decimal.add(acc, signed)
+      end)
+
+    # Yield = NW_actual - (NW_anterior + NetFlows)
+    expected_nw = Decimal.add(previous_nw, net_flows)
+    yield = Decimal.sub(net_worth, expected_nw)
+
+    # Savings = Delta NW - Yield
+    delta_nw = Decimal.sub(net_worth, previous_nw)
+    savings = Decimal.sub(delta_nw, yield)
+
+    %{
+      total_net_worth_usd: net_worth,
+      total_income_usd: income_usd,
+      total_savings_usd: savings,
+      total_yield_usd: yield,
+      delta_nw: delta_nw,
+      expenses: Decimal.sub(income_usd, savings)
+    }
+  end
+
+  # ==============================================================================
+  # Commit Atómico (Transacción con Ecto.Multi)
+  # ==============================================================================
+
+  @doc """
+  Confirma un cierre de mes de forma atómica usando Ecto.Multi.
+
+  Si cualquier operación falla, se hace rollback de TODO.
+
+  ## Parámetros
+    - snapshot: El snapshot a confirmar
+    - closure_data: %{
+        balances: [%{account_id, amount_nominal, amount_usd}],
+        liability_details: %{account_id => %{current_period_balance, future_installments_balance}},
+        flows: [%{amount_usd, direction}],
+        result: %{total_income_usd, total_net_worth_usd, total_savings_usd, total_yield_usd},
+        exchange_rates: %{blue: Decimal, mep: Decimal}
+      }
+  """
+  def commit_closure_atomic(%Snapshot{} = snapshot, closure_data) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.run(:delete_existing_flows, fn _repo, _changes ->
+      # Limpiar flows existentes del draft para evitar duplicados
+      InvestmentFlow
+      |> where([f], f.snapshot_id == ^snapshot.id)
+      |> Repo.delete_all()
+
+      {:ok, :deleted}
+    end)
+    |> Ecto.Multi.run(:balances, fn _repo, _changes ->
+      results =
+        Enum.map(closure_data.balances, fn balance_attrs ->
+          upsert_balance(%{
+            snapshot_id: snapshot.id,
+            account_id: balance_attrs.account_id,
+            amount_nominal: balance_attrs.amount_nominal,
+            amount_usd: balance_attrs.amount_usd
+          })
+        end)
+
+      if Enum.all?(results, &match?({:ok, _}, &1)) do
+        {:ok, results}
+      else
+        {:error, :balance_upsert_failed}
+      end
+    end)
+    |> Ecto.Multi.run(:liability_details, fn _repo, _changes ->
+      results =
+        Enum.map(closure_data.liability_details, fn {account_id, detail} ->
+          case get_balance(snapshot.id, account_id) do
+            nil ->
+              {:error, :balance_not_found}
+
+            balance ->
+              upsert_liability_detail(balance.id, detail)
+          end
+        end)
+
+      if Enum.all?(results, fn r -> match?({:ok, _}, r) or r == {:error, :balance_not_found} end) do
+        {:ok, results}
+      else
+        {:error, :liability_detail_failed}
+      end
+    end)
+    |> Ecto.Multi.run(:flows, fn _repo, _changes ->
+      results =
+        Enum.map(closure_data.flows, fn flow_attrs ->
+          create_investment_flow(%{
+            snapshot_id: snapshot.id,
+            amount_usd: flow_attrs.amount_usd,
+            direction: flow_attrs.direction
+          })
+        end)
+
+      if Enum.all?(results, &match?({:ok, _}, &1)) do
+        {:ok, results}
+      else
+        {:error, :flow_creation_failed}
+      end
+    end)
+    |> Ecto.Multi.update(:snapshot, fn _changes ->
+      Snapshot.confirm_changeset(snapshot, %{
+        total_income_usd: closure_data.result.total_income_usd,
+        total_net_worth_usd: closure_data.result.total_net_worth_usd,
+        total_savings_usd: closure_data.result.total_savings_usd,
+        total_yield_usd: closure_data.result.total_yield_usd,
+        exchange_rate_blue: closure_data.exchange_rates.blue,
+        exchange_rate_mep: closure_data.exchange_rates.mep
+      })
+    end)
+    |> Repo.transaction()
+  end
+
+  @doc """
+  Obtiene los saldos del último snapshot confirmado para pre-cargar en el wizard.
+  Retorna un map %{account_id => %{amount_nominal, amount_usd}}
+  """
+  def get_previous_balances_for_wizard(user_id) do
+    case get_latest_confirmed_snapshot(user_id) do
+      nil ->
+        %{}
+
+      snapshot ->
+        snapshot.id
+        |> list_balances_for_snapshot()
+        |> Enum.reduce(%{}, fn balance, acc ->
+          Map.put(acc, balance.account_id, %{
+            amount_nominal: balance.amount_nominal,
+            amount_usd: balance.amount_usd
+          })
+        end)
+    end
+  end
 end
