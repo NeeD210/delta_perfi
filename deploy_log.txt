@@ -1,0 +1,139 @@
+==> Verifying app config
+Validating C:\Users\facun\OneDrive\Escritorio\programming\PerFi_Delta\perfi_delta\fly.toml
+[32mΓ£ô[0m Configuration is valid
+--> Verified app config
+==> Building image
+Waiting for depot builder...
+
+==> Building image with Depot
+--> build:  (ΓÇï)
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile:
+#1 transferring dockerfile: 2.39kB 0.5s done
+#1 DONE 0.5s
+
+#2 [internal] load metadata for docker.io/library/debian:bookworm-slim
+#2 DONE 0.2s
+
+#3 [internal] load metadata for docker.io/library/elixir:1.17-slim
+#3 DONE 0.2s
+
+#4 [internal] load .dockerignore
+#4 transferring context:
+#4 transferring context: 288B 0.5s done
+#4 DONE 0.5s
+
+#5 [builder  1/18] FROM docker.io/library/elixir:1.17-slim@sha256:d22482cdd56d7e320a357b7b9ca199fef5ca24ad6bce6fcdca5556585aabbe77
+#5 resolve docker.io/library/elixir:1.17-slim@sha256:d22482cdd56d7e320a357b7b9ca199fef5ca24ad6bce6fcdca5556585aabbe77 done
+#5 DONE 0.0s
+
+#6 [stage-1 1/6] FROM docker.io/library/debian:bookworm-slim@sha256:98f4b71de414932439ac6ac690d7060df1f27161073c5036a7553723881bffbe
+#6 resolve docker.io/library/debian:bookworm-slim@sha256:98f4b71de414932439ac6ac690d7060df1f27161073c5036a7553723881bffbe done
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 transferring context: 5.64kB 0.4s done
+#7 DONE 0.4s
+
+#8 [builder 16/18] COPY config/runtime.exs config/
+#8 CACHED
+
+#9 [stage-1 5/6] RUN chown nobody /app
+#9 CACHED
+
+#10 [builder 13/18] RUN mix compile
+#10 CACHED
+
+#11 [builder 14/18] RUN mix assets.setup
+#11 CACHED
+
+#12 [stage-1 3/6] RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+#12 CACHED
+
+#13 [builder  4/18] RUN mix local.hex --force &&     mix local.rebar --force
+#13 CACHED
+
+#14 [builder  5/18] COPY mix.exs mix.lock ./
+#14 CACHED
+
+#15 [builder  6/18] RUN mix deps.get --only prod
+#15 CACHED
+
+#16 [builder 15/18] RUN mix assets.deploy
+#16 CACHED
+
+#17 [builder  2/18] RUN apt-get update -y && apt-get install -y build-essential git curl     && apt-get clean && rm -f /var/lib/apt/lists/*_*
+#17 CACHED
+
+#18 [builder  3/18] WORKDIR /app
+#18 CACHED
+
+#19 [builder 17/18] COPY rel rel
+#19 CACHED
+
+#20 [builder  9/18] RUN mix deps.compile
+#20 CACHED
+
+#21 [builder  8/18] COPY config/config.exs config/prod.exs config/
+#21 CACHED
+
+#22 [builder 10/18] COPY priv priv
+#22 CACHED
+
+#23 [builder 12/18] COPY assets assets
+#23 CACHED
+
+#24 [builder  7/18] RUN mkdir config
+#24 CACHED
+
+#25 [builder 11/18] COPY lib lib
+#25 CACHED
+
+#26 [stage-1 2/6] RUN apt-get update -y &&     apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates     && apt-get clean && rm -f /var/lib/apt/lists/*_*
+#26 CACHED
+
+#27 [stage-1 4/6] WORKDIR /app
+#27 CACHED
+
+#28 [builder 18/18] RUN mix release
+#28 CACHED
+
+#29 [stage-1 6/6] COPY --from=builder --chown=nobody:root /app/_build/prod/rel/perfi_delta ./
+#29 CACHED
+
+#30 exporting to image
+#30 exporting layers done
+#30 exporting manifest sha256:f6134f498d86f8dae89cdd309ce250cb11b2c4feace11089665492b3554d3e48 done
+#30 exporting config sha256:9eba14c1ac873fed3cb9c9c80ac1b09fe714aee0b82dcbb8283ce8022128a1c7 done
+#30 pushing layers for registry.fly.io/perfi-delta:deployment-01KHJ6X38MG8CFE9TZ2MRPVW0H@sha256:f6134f498d86f8dae89cdd309ce250cb11b2c4feace11089665492b3554d3e48
+#30 pushing layer sha256:9eba14c1ac873fed3cb9c9c80ac1b09fe714aee0b82dcbb8283ce8022128a1c7
+#30 pushing layer sha256:c89d448d0897b3f28da3193ad13b22e758d7d8c7e299ac3a9748bd5ff8b03549
+#30 pushing layer sha256:b6dee0e40354ddb95fd8c0876be5a563d92b7b12ce9bcbbeb4dcb9641d3b0225
+#30 pushing layer sha256:7135ba1ae84153f52a68a0e0102aaddaedfce1c5a7bc72953378c54ef15291fa
+#30 pushing layer sha256:a788d475d39c19a89bfc03fbfd23d9819a5b80bbedd29b6139ebfc80d1338539
+#30 pushing layer sha256:db42b9d09b03d03b9ed92d277c9da1392277c07b98ca4723421e78361e21a030
+#30 pushing layer sha256:dcc8645f08d96e7439769b563fd4997f16dc15093e542fddcde233fe596c9d8c
+#30 pushing layer sha256:dcc8645f08d96e7439769b563fd4997f16dc15093e542fddcde233fe596c9d8c 0.4s done
+#30 pushing layer sha256:a788d475d39c19a89bfc03fbfd23d9819a5b80bbedd29b6139ebfc80d1338539 0.5s done
+#30 pushing layer sha256:7135ba1ae84153f52a68a0e0102aaddaedfce1c5a7bc72953378c54ef15291fa 0.7s done
+#30 pushing layer sha256:b6dee0e40354ddb95fd8c0876be5a563d92b7b12ce9bcbbeb4dcb9641d3b0225 0.9s done
+#30 pushing layer sha256:c89d448d0897b3f28da3193ad13b22e758d7d8c7e299ac3a9748bd5ff8b03549 1.2s done
+#30 pushing layer sha256:db42b9d09b03d03b9ed92d277c9da1392277c07b98ca4723421e78361e21a030 1.2s done
+#30 pushing layers for registry.fly.io/perfi-delta:deployment-01KHJ6X38MG8CFE9TZ2MRPVW0H@sha256:f6134f498d86f8dae89cdd309ce250cb11b2c4feace11089665492b3554d3e48 1.2s done
+#30 pushing layer sha256:9eba14c1ac873fed3cb9c9c80ac1b09fe714aee0b82dcbb8283ce8022128a1c7 1.2s done
+#30 pushing manifest for registry.fly.io/perfi-delta:deployment-01KHJ6X38MG8CFE9TZ2MRPVW0H@sha256:f6134f498d86f8dae89cdd309ce250cb11b2c4feace11089665492b3554d3e48 0.1s done
+#30 DONE 1.3s
+--> Build Summary:  (ΓÇï)
+--> Building image done
+image: registry.fly.io/perfi-delta:deployment-01KHJ6X38MG8CFE9TZ2MRPVW0H
+
+Watch your deployment at https://fly.io/apps/perfi-delta/monitoring
+
+image size: 60 MB
+Updating existing machines in 'perfi-delta' with rolling strategy
+> Acquiring lease for 287e360f0197d8
+> Acquired lease for 287e360f0197d8
+> Updating machine config for 287e360f0197d8
+> Updating 287e360f0197d8 [app]
+> Updated machine config for 287e360f0197d8
+> Waiting for machine 287e360f0197d8 to reach a good state

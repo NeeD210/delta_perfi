@@ -27,12 +27,29 @@ La mayoría de las apps fallan porque el registro manual de gastos es insoportab
 
 ## 🚀 Setup Local
 
-### Requisitos
+### Opción A: Docker (Recomendado)
+
+Si tienes Docker instalado, puedes levantar todo el stack (App + Postgres) con un solo comando:
+
+1. Asegúrate de que Docker Desktop esté corriendo.
+2. Inicia los contenedores:
+   ```bash
+   docker-compose up --build -d
+   ```
+3. Ejecuta las migraciones:
+   ```bash
+   docker-compose run app mix ecto.migrate
+   ```
+4. Entra a [`localhost:4000`](http://localhost:4000).
+
+### Opción B: Ejecución Nativa
+
+#### Requisitos
 - Elixir 1.16+ y Erlang/OTP 26+
 - Node.js (opcional, para assets avanzados)
-- PostgreSQL (puedes usar Docker como se recomienda abajo)
+- PostgreSQL (puedes usar Docker solo para la base de datos)
 
-### Instalación
+#### Instalación
 1. Cloná el repositorio.
 2. Asegurate de tener la DB arriba:
    ```bash
@@ -47,7 +64,7 @@ La mayoría de las apps fallan porque el registro manual de gastos es insoportab
    ```bash
    mix phx.server
    ```
-5. Entrá a [`localhost:4000`](http://localhost:4000).
+5. Entra a [`localhost:4000`](http://localhost:4000).
 
 ## 🗺 Roadmap
 - [x] MVP: Cierre de mes manual y dashboard básico.

@@ -4,21 +4,27 @@ defmodule PerfiDelta.Accounts.UserNotifier do
   alias PerfiDelta.Mailer
   alias PerfiDelta.Accounts.User
 
-  @from_email System.get_env("FROM_EMAIL", "onboarding@resend.dev")
   @from_name "PerFi Delta"
+
+  defp from_email do
+    System.get_env("FROM_EMAIL", "onboarding@resend.dev")
+  end
 
   # Delivers the email using the application mailer.
   defp deliver(recipient, subject, body) do
     email =
       new()
       |> to(recipient)
-      |> from({@from_name, @from_email})
+      |> from({@from_name, from_email()})
       |> subject(subject)
       |> text_body(body)
 
-    with {:ok, _metadata} <- Mailer.deliver(email) do
-      {:ok, email}
-    end
+    # Enviamos el mail de forma asincrónica para no bloquear la UI
+    Task.start(fn ->
+      Mailer.deliver(email)
+    end)
+
+    {:ok, email}
   end
 
   @doc """

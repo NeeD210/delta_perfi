@@ -64,7 +64,8 @@ if config_env() == :prod do
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
       # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
       # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
+      ip: {0, 0, 0, 0, 0, 0, 0, 0},
+      port: String.to_integer(System.get_env("PORT") || "4000")
     ],
     secret_key_base: secret_key_base
 
@@ -100,21 +101,22 @@ if config_env() == :prod do
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
 
-  # ## Configuring the mailer
-  #
-  # In production you need to configure the mailer to use a different adapter.
-  # We use Resend for email delivery (https://resend.com)
-  #
-  # 1. Sign up at https://resend.com
-  # 2. Get your API key from the dashboard
-  # 3. Set RESEND_API_KEY environment variable
-  # 4. Optionally set FROM_EMAIL (defaults to onboarding@resend.dev)
-  
-  resend_api_key = System.get_env("RESEND_API_KEY")
-  
-  if resend_api_key do
-    config :perfi_delta, PerfiDelta.Mailer,
-      adapter: Swoosh.Adapters.Resend,
-      api_key: resend_api_key
-  end
+end
+
+# ## Configuring the mailer
+#
+# In production you need to configure the mailer to use a different adapter.
+# We use Resend for email delivery (https://resend.com)
+#
+# 1. Sign up at https://resend.com
+# 2. Get your API key from the dashboard
+# 3. Set RESEND_API_KEY environment variable
+# 4. Optionally set FROM_EMAIL (defaults to onboarding@resend.dev)
+
+resend_api_key = System.get_env("RESEND_API_KEY")
+
+if resend_api_key do
+  config :perfi_delta, PerfiDelta.Mailer,
+    adapter: Swoosh.Adapters.Resend,
+    api_key: resend_api_key
 end

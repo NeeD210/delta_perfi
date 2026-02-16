@@ -105,7 +105,7 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
     {:noreply, assign(socket, :assets_filter, filter_type)}
   end
 
-  def handle_event("update_balance", %{"account_id" => account_id, "amount" => amount}, socket) do
+  def handle_event("update_balance", %{"account_id" => account_id, "value" => amount}, socket) do
     amount_decimal = parse_currency(amount)
     account = Finance.get_account!(account_id)
 
@@ -129,19 +129,25 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
     {:noreply, assign(socket, :balances, balances)}
   end
 
-  def handle_event("update_liability_detail", params, socket) do
-    %{"account_id" => account_id, "current" => current, "future" => future} = params
+  def handle_event("update_liability_detail", %{"account_id" => account_id, "field" => field, "value" => value}, socket) do
+    # Obtener detalles existentes o iniciales
+    default = %{current_period_balance: Decimal.new(0), future_installments_balance: Decimal.new(0)}
+    existing = Map.get(socket.assigns.liability_details, account_id, default)
 
-    current_dec = parse_currency(current)
-    future_dec = parse_currency(future)
-    total = Decimal.add(current_dec, future_dec)
+    amount = parse_currency(value)
 
-    details =
-      Map.put(socket.assigns.liability_details, account_id, %{
-        current_period_balance: current_dec,
-        future_installments_balance: future_dec,
-        total_debt: total
-      })
+    # Actualizar solo el campo que cambió (evita stale phx-value)
+    new_details =
+      case field do
+        "current" -> %{existing | current_period_balance: amount}
+        "future" -> %{existing | future_installments_balance: amount}
+        _ -> existing
+      end
+
+    total = Decimal.add(new_details.current_period_balance, new_details.future_installments_balance)
+    new_details = Map.put(new_details, :total_debt, total)
+
+    details = Map.put(socket.assigns.liability_details, account_id, new_details)
 
     # Actualizar también el balance con el total
     account = Finance.get_account!(account_id)
@@ -476,7 +482,8 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
                 value={get_balance_amount(@balances, account.id)}
                 phx-blur="update_balance"
                 phx-value-account_id={account.id}
-                phx-value-amount={get_balance_amount(@balances, account.id)}
+                phx-hook="NumberFormat"
+                id={"balance-#{account.id}"}
                 class="input input-bordered input-currency w-full"
               />
             </div>
@@ -536,8 +543,9 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
                             value={get_liability_current(@liability_details, account.id)}
                             phx-blur="update_liability_detail"
                             phx-value-account_id={account.id}
-                            phx-value-current={get_liability_current(@liability_details, account.id)}
-                            phx-value-future={get_liability_future(@liability_details, account.id)}
+                            phx-value-field="current"
+                            phx-hook="NumberFormat"
+                            id={"liability-current-#{account.id}"}
                             class="input input-bordered w-full text-right font-mono-numbers pr-14"
                           />
                           <span class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/30 text-xs font-bold"><%= account.currency %></span>
@@ -553,8 +561,9 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
                             value={get_liability_future(@liability_details, account.id)}
                             phx-blur="update_liability_detail"
                             phx-value-account_id={account.id}
-                            phx-value-current={get_liability_current(@liability_details, account.id)}
-                            phx-value-future={get_liability_future(@liability_details, account.id)}
+                            phx-value-field="future"
+                            phx-hook="NumberFormat"
+                            id={"liability-future-#{account.id}"}
                             class="input input-bordered w-full text-right font-mono-numbers pr-14"
                           />
                           <span class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/30 text-xs font-bold"><%= account.currency %></span>
@@ -626,6 +635,8 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
                 placeholder="0"
                 value={@flow_amount}
                 phx-keyup="update_flow_amount"
+                phx-hook="NumberFormat"
+                id="flow-amount-input"
                 class="input input-bordered w-full text-xl font-mono-numbers"
               />
             </div>
@@ -687,6 +698,8 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
               value={@income_ars}
               phx-blur="update_income"
               phx-value-currency="ARS"
+              phx-hook="NumberFormat"
+              id="closure-income-ars"
               class="input input-bordered w-full text-xl font-mono-numbers text-right pr-16"
             />
             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold">ARS</span>
@@ -703,6 +716,8 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
               value={@income_usd}
               phx-blur="update_income"
               phx-value-currency="USD"
+              phx-hook="NumberFormat"
+              id="closure-income-usd"
               class="input input-bordered w-full text-xl font-mono-numbers text-right pr-16"
             />
             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold">USD</span>
@@ -818,14 +833,14 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
 
   defp get_liability_current(details, account_id) do
     case Map.get(details, account_id) do
-      %{current_period_balance: amount} -> amount |> Decimal.to_string() |> String.replace(".", ",")
+      %{current_period_balance: amount} -> format_smart_currency(amount)
       _ -> ""
     end
   end
 
   defp get_liability_future(details, account_id) do
     case Map.get(details, account_id) do
-      %{future_installments_balance: amount} -> amount |> Decimal.to_string() |> String.replace(".", ",")
+      %{future_installments_balance: amount} -> format_smart_currency(amount)
       _ -> ""
     end
   end

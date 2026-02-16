@@ -12,6 +12,19 @@ defmodule PerfiDeltaWeb.DashboardLive do
     # Obtener datos del usuario
     latest_snapshot = Finance.get_latest_confirmed_snapshot(user_id)
     accounts = Finance.list_accounts_with_latest_balances(user_id)
+    snapshot_count = Finance.count_confirmed_snapshots(user_id)
+    avg_expenses = Finance.get_average_monthly_expenses(user_id)
+
+    # Calcular Runway (Libertad Financiera)
+    # Liquid NW / Gastos Promedio
+    liquid_nw = sum_by_type(accounts, :liquid)
+
+    runway =
+      if Decimal.gt?(avg_expenses, 0) do
+        Decimal.div(liquid_nw, avg_expenses) |> Decimal.round(1)
+      else
+        nil
+      end
 
     # Obtener cotización del dólar para conversión
     dolar_rate = fetch_dolar_rate()
@@ -21,6 +34,9 @@ defmodule PerfiDeltaWeb.DashboardLive do
       |> assign(:page_title, "Inicio")
       |> assign(:latest_snapshot, latest_snapshot)
       |> assign(:accounts, accounts)
+      |> assign(:snapshot_count, snapshot_count)
+      |> assign(:is_zero_state, snapshot_count == 1)
+      |> assign(:runway, runway)
       |> assign(:dolar_rate, dolar_rate)
       |> assign(:display_currency, "USD")
       |> assign(:needs_onboarding, !socket.assigns.current_scope.user.onboarding_completed)
@@ -114,30 +130,66 @@ defmodule PerfiDeltaWeb.DashboardLive do
                 </div>
               </div>
 
-              <div class="grid grid-cols-2 gap-4">
-                <div class="glass-card-static p-4 rounded-xl">
-                  <div class="flex items-center gap-2 mb-2">
-                    <div class="icon-badge icon-badge-liquid">
-                      <span class="hero-arrow-trending-up"></span>
-                    </div>
-                    <span class="text-xs opacity-60">Ahorro</span>
+              <%= if @is_zero_state do %>
+                <!-- Zero State: Línea base establecida -->
+                <div class="glass-card-static p-5 rounded-xl text-center">
+                  <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+                    <span class="hero-sparkles text-2xl text-indigo-400"></span>
                   </div>
-                  <p class="text-xl font-mono-numbers font-bold text-savings">
-                    <%= format_signed_display_currency(@latest_snapshot.total_savings_usd, @display_currency, @dolar_rate) %>
+                  <p class="font-semibold text-base mb-1">Tu línea base está establecida</p>
+                  <p class="text-sm opacity-60">
+                    Cuando hagas tu próximo cierre, verás cuánto ahorraste
+                    y cuánto rindieron tus inversiones.
                   </p>
                 </div>
-                <div class="glass-card-static p-4 rounded-xl">
-                  <div class="flex items-center gap-2 mb-2">
-                    <div class="icon-badge icon-badge-investment">
-                      <span class="hero-chart-bar"></span>
+              <% else %>
+                <!-- Normal State: Ahorro + Rendimiento -->
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="glass-card-static p-4 rounded-xl">
+                    <div class="flex items-center gap-2 mb-2">
+                      <div class="icon-badge icon-badge-liquid">
+                        <span class="hero-arrow-trending-up"></span>
+                      </div>
+                      <span class="text-xs opacity-60">Ahorro</span>
                     </div>
-                    <span class="text-xs opacity-60">Rendimiento</span>
+                    <p class="text-xl font-mono-numbers font-bold text-savings">
+                      <%= format_signed_display_currency(@latest_snapshot.total_savings_usd, @display_currency, @dolar_rate) %>
+                    </p>
                   </div>
-                  <p class="text-xl font-mono-numbers font-bold text-yield">
-                    <%= format_signed_display_currency(@latest_snapshot.total_yield_usd, @display_currency, @dolar_rate) %>
+                  <div class="glass-card-static p-4 rounded-xl">
+                    <div class="flex items-center gap-2 mb-2">
+                      <div class="icon-badge icon-badge-investment">
+                        <span class="hero-chart-bar"></span>
+                      </div>
+                      <span class="text-xs opacity-60">Rendimiento</span>
+                    </div>
+                    <p class="text-xl font-mono-numbers font-bold text-yield">
+                      <%= format_signed_display_currency(@latest_snapshot.total_yield_usd, @display_currency, @dolar_rate) %>
+                    </p>
+                  </div>
+                </div>
+              <% end %>
+
+              <%= if @runway do %>
+                <!-- Runway Card (Libertad Financiera) -->
+                <div class="mt-6 pt-6 border-t border-base-content/10">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs opacity-60 uppercase tracking-wider font-bold">Libertad Financiera</span>
+                    <span class={"badge badge-sm font-bold #{runway_badge_class(@runway)}"}>
+                      <%= runway_status_label(@runway) %>
+                    </span>
+                  </div>
+                  <div class="flex items-end gap-2">
+                    <p class={"text-3xl font-mono-numbers font-extrabold #{runway_text_class(@runway)}"}>
+                      <%= Decimal.to_string(@runway) %>
+                    </p>
+                    <p class="text-sm opacity-60 mb-1">meses de vida</p>
+                  </div>
+                  <p class="text-[10px] opacity-40 mt-1">
+                    Basado en tus gastos promedio de los últimos meses.
                   </p>
                 </div>
-              </div>
+              <% end %>
 
               <p class="text-xs opacity-40 mt-4 text-center">
                 Último cierre: <%= format_month(@latest_snapshot.month) %> <%= @latest_snapshot.year %>
@@ -357,4 +409,28 @@ defmodule PerfiDeltaWeb.DashboardLive do
   defp account_amount_class(:liquid), do: "text-savings"
   defp account_amount_class(:investment), do: "text-yield"
   defp account_amount_class(:liability), do: "text-debt"
+
+  defp runway_badge_class(months) do
+    cond do
+      Decimal.lt?(months, 3) -> "badge-error"
+      Decimal.lt?(months, 6) -> "badge-warning"
+      true -> "badge-success"
+    end
+  end
+
+  defp runway_text_class(months) do
+    cond do
+      Decimal.lt?(months, 3) -> "text-error"
+      Decimal.lt?(months, 6) -> "text-warning"
+      true -> "text-success"
+    end
+  end
+
+  defp runway_status_label(months) do
+    cond do
+      Decimal.lt?(months, 3) -> "Crítico"
+      Decimal.lt?(months, 6) -> "Precario"
+      true -> "Saludable"
+    end
+  end
 end

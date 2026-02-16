@@ -1,0 +1,22 @@
+# Docker ignore file
+_build
+deps
+.elixir_ls
+.git
+assets/node_modules
+priv/static
+*.png
+*.jpg
+*.jpeg
+*.svg
+.cursor
+.gemini
+planning
+AGENTS.md
+EMAIL_SETUP.md
+README.md
+task.md
+implementation_plan.md
+walkthrough.md
+.env
+.env.*

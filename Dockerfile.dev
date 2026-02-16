@@ -1,0 +1,41 @@
+FROM elixir:1.16 AS build
+
+# install build dependencies
+RUN apt-get update && apt-get install -y build-essential git curl
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+# prepare build step
+WORKDIR /app
+
+# install hex + rebar
+RUN mix local.hex --force && \
+    mix local.rebar --force
+
+# set build ENV
+ENV MIX_ENV="dev"
+
+# install mix dependencies
+COPY mix.exs mix.lock ./
+RUN mix deps.get --only $MIX_ENV
+RUN mix deps.compile
+
+# copy over the assets
+COPY assets assets
+COPY config config
+
+# install npm dependencies and build assets
+RUN mix assets.setup
+RUN mix assets.build
+
+# copy over the rest of the app
+COPY lib lib
+COPY priv priv
+
+# compile the app
+RUN mix compile
+
+# expose port
+EXPOSE 4000
+
+CMD ["mix", "phx.server"]

@@ -139,6 +139,38 @@ defmodule PerfiDelta.Finance do
     |> Repo.all()
   end
 
+  @doc "Cuenta la cantidad de snapshots confirmados de un usuario"
+  def count_confirmed_snapshots(user_id) do
+    Snapshot
+    |> where([s], s.user_id == ^user_id and s.status == :confirmed and is_nil(s.deleted_at))
+    |> Repo.aggregate(:count)
+  end
+
+  @doc "Calcula el promedio de gastos mensuales de los últimos snapshots confirmados"
+  def get_average_monthly_expenses(user_id, limit \\ 3) do
+    snapshots =
+      Snapshot
+      |> where([s], s.user_id == ^user_id and s.status == :confirmed and is_nil(s.deleted_at))
+      |> order_by([s], desc: s.year, desc: s.month)
+      |> limit(^limit)
+      |> Repo.all()
+
+    if Enum.empty?(snapshots) do
+      Decimal.new(0)
+    else
+      total_expenses =
+        Enum.reduce(snapshots, Decimal.new(0), fn s, acc ->
+          # Expenses = Income - Savings
+          expenses =
+            Decimal.sub(s.total_income_usd || Decimal.new(0), s.total_savings_usd || Decimal.new(0))
+
+          Decimal.add(acc, expenses)
+        end)
+
+      Decimal.div(total_expenses, Decimal.new(length(snapshots)))
+    end
+  end
+
   @doc "Crea un nuevo snapshot"
   def create_snapshot(attrs \\ %{}) do
     %Snapshot{}

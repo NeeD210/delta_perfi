@@ -5,8 +5,8 @@ config :perfi_delta, PerfiDeltaWeb.Endpoint, server: true
 # Configure your database
 config :perfi_delta, PerfiDelta.Repo,
   username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
+  password: System.get_env("DB_PASSWORD") || "postgres",
+  hostname: System.get_env("DB_HOSTNAME") || "localhost",
   database: "perfi_delta_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
@@ -60,12 +60,12 @@ config :perfi_delta, PerfiDeltaWeb.Endpoint,
     web_console_logger: true,
     patterns: [
       # Static assets, except user uploads
-      ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$"E,
+      ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$",
       # Gettext translations
-      ~r"priv/gettext/.*\.po$"E,
+      ~r"priv/gettext/.*\.po$",
       # Router, Controllers, LiveViews and LiveComponents
-      ~r"lib/perfi_delta_web/router\.ex$"E,
-      ~r"lib/perfi_delta_web/(controllers|live|components)/.*\.(ex|heex)$"E
+      ~r"lib/perfi_delta_web/router\.ex$",
+      ~r"lib/perfi_delta_web/(controllers|live|components)/.*\.(ex|heex)$"
     ]
   ]
 
@@ -91,4 +91,9 @@ config :phoenix_live_view,
   enable_expensive_runtime_checks: true
 
 # Disable swoosh api client as it is only required for production adapters.
-config :swoosh, :api_client, false
+# If you want to use a real adapter like Resend in dev, set RESEND_API_KEY.
+if System.get_env("RESEND_API_KEY") do
+  config :swoosh, :api_client, Swoosh.ApiClient.Req
+else
+  config :swoosh, :api_client, false
+end

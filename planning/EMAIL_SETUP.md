@@ -93,9 +93,16 @@ Si no configuras `FROM_EMAIL`, se usará: `onboarding@resend.dev`
 
 1. En Resend, ve a **Domains**
 2. Agrega tu dominio (ej: `tuapp.com`)
-3. Configura los registros DNS según las instrucciones
+3. **Configuración DNS (Paso Crítico):**
+   Resend te dará 3 registros técnicos que tenés que copiar y pegar en tu proveedor de dominio (Porkbun, etc.):
+   - **DKIM (TXT):** Firma digital para que los receptores confíen en el mail.
+   - **SPF (TXT):** Lista de servidores autorizados para mandar mails de tu dominio.
+   - **DMARC (TXT):** Política de seguridad que dice qué hacer si falla el SPF/DKIM.
 4. Espera la verificación (5-30 minutos)
-5. Configura `FROM_EMAIL=noreply@tuapp.com`
+5. Configura `FROM_EMAIL=noreply@tuapp.com` en tu archivo `.env`
+   
+> [!NOTE]
+> Configurar el dominio para email (registros TXT) **no afecta** a tu sitio web. Son "puertas" separadas en la misma casa.
 
 ---
 
