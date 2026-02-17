@@ -71,6 +71,7 @@ RUN chown nobody /app
 
 # Set runner ENV
 ENV MIX_ENV="prod"
+ENV PHX_SERVER="true"
 
 # Only copy the final release from the build stage
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/perfi_delta ./
@@ -82,4 +83,4 @@ USER nobody
 # above and adding an pointentry. See https://github.com/krallin/tini.
 # ENTRYPOINT ["/tini", "--"]
 
-CMD ["/app/bin/server"]
+CMD ["/app/bin/perfi_delta", "start"]

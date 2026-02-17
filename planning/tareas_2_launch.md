@@ -87,8 +87,9 @@ Para recuperar contraseñas y bienvenida.
 > - Actualiza el `UserNotifier` para que el 'Sender' sea `hola@tu-dominio.com` y no `example.com`."
 
 #### 5. Deploy en Fly.io
-*   **Estado:** � 0% completado.
-*   **Nota:** No hay `fly.toml` ni `Dockerfile` en el proyecto. No se ha ejecutado `fly launch`. Todo está por hacer.
+*   **Estado:** 🟡 40% (Debugging).
+*   **Nota:** `fly launch` ejecutado. Enfrentando errores de Build (Phoenix Hooks), Runtime (Timeouts) y Health Checks.
+*   **Ver Detalle:** `planning/fly_bugs.md` para seguimiento de errores específicos.
 
 **Tareas Manuales:**
 - [ ] Instalar `flyctl`.
@@ -144,7 +145,7 @@ No programes esto en la app todavía. Usa herramientas No-Code.
 | 2 | Zero State | 100% | ✅ Completado |
 | 3 | Runway | 100% | ✅ Completado |
 | 4 | Email (Resend) | 80% | 🟢 Falta dominio |
-| 5 | Deploy (Fly.io) | 0% | 🔴 Sin empezar |
+| 5 | Deploy (Fly.io) | 40% | 🟡 Debugging |
 | 6 | Landing Page | 0% | 🔴 Sin empezar |
 | 7 | Tally Form | 0% | 🔴 Externo |
 | 8 | Redes Sociales | 0% | 🔴 Externo |

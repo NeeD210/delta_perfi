@@ -11,6 +11,7 @@ primary_region = 'gru'
 [env]
   PHX_HOST = 'perfi-delta.fly.dev'
   PORT = '8080'
+  ECTO_IPV6 = 'true'
 
 [http_service]
   internal_port = 8080
@@ -21,13 +22,14 @@ primary_region = 'gru'
   processes = ['app']
 
 [[http_service.checks]]
-  grace_period = "30s"
+  grace_period = "20s"
   interval = "15s"
   method = "GET"
-  path = "/users/log-in"
+  path = "/health"
+  headers = { Host = "localhost" }
   timeout = "5s"
 
 [[vm]]
-  memory = '512mb'
+  memory = '1024mb'
   cpu_kind = 'shared'
   cpus = 1

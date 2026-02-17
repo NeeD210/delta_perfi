@@ -45,21 +45,26 @@
 
 ### 4. UI/UX & Analytics
 - [x] **Dashboard**: Vista de pájaro del estado actual.
+- [x] **Zero State**: Onboarding inteligente para usuarios nuevos sin historial.
+- [x] **Runway**: Indicador de "Libertad Financiera" (meses de vida según capital líquido).
 - [x] **Historial**: Gráfico de evolución de patrimonio (últimos 12 meses).
 - [x] **Snapshots**: Detalle profundo de cada cierre pasado.
 - [x] **Diseño**: Tema oscuro/glassmorphism con colores semánticos (Verde Ahorro, Azul Yield, Rojo Ahorro).
 
-### 5. Autenticación & Seguridad
+### 5. Autenticación, Seguridad & Infraestructura
 - [x] Flujo completo de Auth (Registro, Login, Recovery).
-- [x] Confirmación de Email (Dev mailbox / Resend en Prod).
+- [x] **Email**: Integración con Resend (Swoosh adapter) para confirmación y recuperación.
 - [x] Soft Deletes para preservar integridad histórica.
+- [ ] **Deploy**: Configuración de Fly.io (En proceso de debugging activo).
 
 ---
 
 ## Pendientes vs PRD (Gap Analysis)
 
 ### Prioridad Alta
-- [ ] **Configuración de Moneda**: UI para elegir si usar Blue o MEP como referencia (Back preparado, Front pendiente).
+- [ ] **Deploy a Producción**: Estabilizar deployment en Fly.io (Build & Runtime errors).
+- [ ] **Landing Page**: Home pública optimizada para conversión.
+- [ ] **Configuración de Moneda**: UI para elegir si usar Blue o MEP como referencia.
 - [ ] **Validaciones Backend**: Reforzar integridad de snapshots en el Contexto.
 - [ ] **Testing**: Tests unitarios para el motor de cálculo (`Finance.calculate_snapshot_values`).
 

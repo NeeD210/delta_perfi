@@ -27,8 +27,8 @@ Este documento recopila los problemas encontrados durante el intento de desplieg
 
 ## Estado Actual
 
-- La aplicación se está desplegando con el `release_command` **comentado** para intentar levantarla primero sin migraciones automáticas.
-- **Objetivo Inmediato:** Lograr que la app arranque y quede "verde" en Fly.io.
+
+- [x] La aplicación se ha desplegado correctamente y está **Verde** (Healthy).
 - **Pasos Siguientes:**
     1. Verificar si la app levanta con el fix del puerto (deploy en curso).
     2. Si levanta, ejecutar migraciones manualmente vía `fly ssh console`.
@@ -49,3 +49,39 @@ fly ssh console
 # Ejecutar migración manual (si la app está arriba)
 fly ssh console -C "/app/bin/migrate"
 ```
+
+
+## 4. Error de Estabilidad (Proxy Error / Restart Loop)
+
+**Síntoma:**
+- Fly Doctor: "Machines Restarting a Lot".
+- Logs (CLI/Dashboard): `[PR04] could not find a good candidate within 40 attempts at load balancing`.
+- Error parcial anterior ("could not find a g...") era: `could not find a good candidate...`.
+
+**Diagnóstico Confirmado:**
+El error `PR04` indica que el Proxy de Fly no encuentra ninguna máquina "sana" para recibir tráfico. Esto sucede porque:
+1.  La app crashea al inicio (Status: Failed).
+2.  O la app arranca pero falla el Health Check (Status: Unhealthy) y Fly la reinicia.
+3.  Posible causa del fallo de Health Check: **SSL Redirect**. El check interno va por HTTP, pero `force_ssl` en `prod.exs` redirige a HTTPS. El check recibe un 301/307 y lo marca como fail (o timeout).
+
+**Solución Propuesta:**
+1.  Crear un endpoint dedicado `/health` que retorne 200 OK simple.
+2.  Excluir `/health` de `force_ssl` en `prod.exs`.
+
+## 5. Error Crítico de Inicio (Entrypoint / OS Error 2)
+
+**Síntoma:**
+Logs de Fly (App): `Error: failed to spawn command: /app/bin/server: No such file or directory (os error 2)`
+
+**Diagnóstico Definitivo:**
+El archivo `/app/bin/server` es un script de shell (`rel/overlays/bin/server`).
+Al desarrollar en Windows, este archivo probablemente se guardó con finales de línea **CRLF**.
+En el contenedor Linux, el shebang `#!/bin/sh` se lee como `#!/bin/sh\r`, lo cual no existe, lanzando "No such file or directory".
+
+**Solución Aplicada:**
+Se modificó el `Dockerfile` para usar `CMD ["/app/bin/perfi_delta", "start"]` y `ENV PHX_SERVER=true`, eliminando la dependencia del script incompatible.
+
+## Estado Final
+- **App Deployada:** ✅
+- **Health Checks:** ✅ (Endpoint `/health` funcionando)
+- **Migraciones:** Pendientes de ejecutar manualmente.

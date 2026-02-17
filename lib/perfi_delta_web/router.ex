@@ -22,6 +22,7 @@ defmodule PerfiDeltaWeb.Router do
 
     # Landing page para usuarios no autenticados
     get "/welcome", PageController, :home
+    get "/health", HealthCheckController, :index
   end
 
   # Other scopes may use custom stacks.
