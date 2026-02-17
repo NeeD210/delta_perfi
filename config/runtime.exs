@@ -115,6 +115,15 @@ end
 
 resend_api_key = System.get_env("RESEND_API_KEY")
 
+if config_env() == :prod and is_nil(resend_api_key) do
+  raise """
+  environment variable RESEND_API_KEY is missing.
+  In production, this is required to send emails via Resend.
+  1. Get an API key at https://resend.com
+  2. Set it using: fly secrets set RESEND_API_KEY=re_...
+  """
+end
+
 if resend_api_key do
   config :perfi_delta, PerfiDelta.Mailer,
     adapter: Swoosh.Adapters.Resend,

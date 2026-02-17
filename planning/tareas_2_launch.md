@@ -70,11 +70,12 @@ Para recuperar contraseñas y bienvenida.
 **Tareas Completadas:**
 - [x] Crear cuenta en [Resend.com](https://resend.com).
 - [x] Generar API Key.
-- [x] Migrar secretos a `.env` (seguridad).
+- [x] Migrar secretos a `.env` (seguridad) y Fly Secrets.
 - [x] Corregir bug compile-time de `FROM_EMAIL`.
 - [x] Implementar envío asincrónico (`Task.start`).
+- [x] Solucionar bug de timeout en producción (validación de API Key).
 
-**Tareas Pendientes:**
+**Tareas Pendientes (Opcionales para MVP):**
 - [ ] Comprar dominio propio.
 - [ ] Verificar dominio en Resend (DNS records: DKIM, SPF, DMARC).
 - [ ] Actualizar `FROM_EMAIL` en `.env` con dominio verificado.
@@ -87,15 +88,17 @@ Para recuperar contraseñas y bienvenida.
 > - Actualiza el `UserNotifier` para que el 'Sender' sea `hola@tu-dominio.com` y no `example.com`."
 
 #### 5. Deploy en Fly.io
-*   **Estado:** 🟡 40% (Debugging).
-*   **Nota:** `fly launch` ejecutado. Enfrentando errores de Build (Phoenix Hooks), Runtime (Timeouts) y Health Checks.
-*   **Ver Detalle:** `planning/fly_bugs.md` para seguimiento de errores específicos.
+*   **Estado:** ✅ 100% completado.
+*   **Nota:** Aplicación desplegada y funcionando. Base de datos migrada (manualmente para evitar timeouts). Secretos configurados. HTTPS forzado.
+*   **Ver Detalle:** `planning/fly_bugs.md` (Histórico de resolución de errores).
 
-**Tareas Manuales:**
-- [ ] Instalar `flyctl`.
-- [ ] Ejecutar `fly launch`.
-- [ ] Vincular base de datos Postgres (Hobby Dev).
-- [ ] Setear secretos: `fly secrets set SECRET_KEY_BASE=... RESEND_API_KEY=<ver .env>`
+**Tareas Completadas:**
+- [x] Instalar `flyctl`.
+- [x] Ejecutar `fly launch`.
+- [x] Vincular base de datos Postgres (Hobby Dev).
+- [x] Setear secretos: `fly secrets set SECRET_KEY_BASE=... RESEND_API_KEY=...`
+- [x] Desplegar aplicación (`fly deploy`).
+- [x] Correr migraciones en producción.
 
 ---
 
@@ -144,8 +147,8 @@ No programes esto en la app todavía. Usa herramientas No-Code.
 | 1 | Closure Wizard | 100% | ✅ Completado |
 | 2 | Zero State | 100% | ✅ Completado |
 | 3 | Runway | 100% | ✅ Completado |
-| 4 | Email (Resend) | 80% | 🟢 Falta dominio |
-| 5 | Deploy (Fly.io) | 40% | 🟡 Debugging |
+| 4 | Email (Resend) | 80% | ✅ Funcionando (solo para mi mail personal) |
+| 5 | Deploy (Fly.io) | 100% | ✅ En Producción |
 | 6 | Landing Page | 0% | 🔴 Sin empezar |
 | 7 | Tally Form | 0% | 🔴 Externo |
 | 8 | Redes Sociales | 0% | 🔴 Externo |

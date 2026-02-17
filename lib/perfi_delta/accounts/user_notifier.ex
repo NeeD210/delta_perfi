@@ -21,7 +21,15 @@ defmodule PerfiDelta.Accounts.UserNotifier do
 
     # Enviamos el mail de forma asincrónica para no bloquear la UI
     Task.start(fn ->
-      Mailer.deliver(email)
+      require Logger
+      Logger.info("Attempting to send email to #{recipient} with subject: #{subject}")
+      
+      case Mailer.deliver(email) do
+        {:ok, _metadata} -> 
+          Logger.info("Email sent successfully to #{recipient}")
+        {:error, reason} -> 
+          Logger.error("Failed to send email to #{recipient}. Reason: #{inspect(reason)}")
+      end
     end)
 
     {:ok, email}
