@@ -1,7 +1,7 @@
 # Product Requirements Document (PRD): PerFi Delta (MVP)
 
 ## 1. Visión y Alcance
-PerFi Delta es una herramienta de **"Finanzas Zen"** basada en la honestidad intelectual. A diferencia de los rastreadores de gastos tradicionales, Delta calcula el flujo de dinero por diferencia patrimonial.
+PerFi Delta es una herramienta de **"Finanzas Personales"** basada en la honestidad intelectual. A diferencia de los rastreadores de gastos tradicionales, Delta calcula el flujo de dinero por diferencia patrimonial.
 
 - **Filosofía**: *"No me digas en qué gasté, dime cuánto me enriquecí realmente."*
 - **Target**: Usuarios argentinos, bimonetarios (ARS/USD), que operan principalmente desde el móvil.

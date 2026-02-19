@@ -74,7 +74,7 @@ defmodule PerfiDeltaWeb.ProfileLive do
       <!-- App Info -->
       <div class="mt-8 text-center opacity-40">
         <p class="text-xs">PerFi Delta v1.0</p>
-        <p class="text-xs">Finanzas Zen 🧘</p>
+        <p class="text-xs">Finanzas Personales 🧘</p>
       </div>
     </div>
     """

@@ -2,7 +2,7 @@
 
 ## Resumen Ejecutivo
 
-**PerFi Delta** es una herramienta de "Finanzas Zen" enfocada en la honestidad intelectual. No te pide categorizar gastos hormiga, sino que mide tu enriquecimiento real mes a mes mediante la diferencia patrimonial (`Delta NW`).
+**PerFi Delta** es una herramienta de "Finanzas Personales" enfocada en la honestidad intelectual. No te pide categorizar gastos hormiga, sino que mide tu enriquecimiento real mes a mes mediante la diferencia patrimonial (`Delta NW`).
 
 - **Target**: Usuarios argentinos, bimonetarios (ARS/USD).
 - **Filosofía**: "No me digas en qué gasté, dime cuánto me enriquecí realmente".

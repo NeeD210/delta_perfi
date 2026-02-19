@@ -1,4 +1,4 @@
-# PerFi Delta: Finanzas Zen
+# PerFi Delta: Finanzas Personales
 
 ![PerFi Delta Logo](/delta_perfi_logo.png)
 

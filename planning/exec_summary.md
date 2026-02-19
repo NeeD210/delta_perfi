@@ -1,6 +1,6 @@
 # Resumen Ejecutivo: PerFi Delta
 
-**PerFi Delta** es una aplicación de finanzas personales enfocada en el **Patrimonio Neto (Net Worth)** y la filosofía de "Finanzas Zen". A diferencia de los expense trackers tradicionales, no te pide categorizar cada café, sino que mide tu enriquecimiento real mes a mes mediante la diferencia patrimonial.
+**PerFi Delta** es una aplicación de finanzas personales enfocada en el **Patrimonio Neto (Net Worth)** y la filosofía de "Finanzas Personales". A diferencia de los expense trackers tradicionales, no te pide categorizar cada café, sino que mide tu enriquecimiento real mes a mes mediante la diferencia patrimonial.
 
 ## Filosofía Core
 - **Foco**: "No me digas en qué gasté, dime cuánto me enriquecí".

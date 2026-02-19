@@ -4,11 +4,14 @@ deps
 .elixir_ls
 .git
 assets/node_modules
-priv/static
-*.png
-*.jpg
-*.jpeg
-*.svg
+/priv/static/assets/
+!/priv/static/images/
+!/priv/static/favicon.ico
+!/priv/static/robots.txt
+# *.png  <-- Removed to allow images
+# *.jpg
+# *.jpeg
+# *.svg
 .cursor
 .gemini
 planning
