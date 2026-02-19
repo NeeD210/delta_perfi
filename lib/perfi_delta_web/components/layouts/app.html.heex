@@ -27,39 +27,40 @@
     is_historial = current_view == PerfiDeltaWeb.HistoryLive
     is_perfil = current_view == PerfiDeltaWeb.ProfileLive
   %>
-  <nav class="bottom-nav-floating">
-    <div class="nav-pill" style={"
-      transform: translateX(#{
-        cond do
-          is_home -> "0%"
-          is_cuentas -> "100%"
-          is_historial -> "300%"
-          is_perfil -> "400%"
-          true -> "200%" # Hide or center behind FAB if unknown
-        end
-      }); 
-      display: #{if !is_home && !is_cuentas && !is_historial && !is_perfil, do: "none", else: "block"}
-    "}></div>
-    
-    <.link href={~p"/"} class={"nav-item #{if is_home, do: "nav-item-active"}"}>
-      <span class="hero-home nav-icon"></span>
-      <span class="nav-label">Inicio</span>
-    </.link>
-    <.link href={~p"/cuentas"} class={"nav-item #{if is_cuentas, do: "nav-item-active"}"}>
-      <span class="hero-wallet nav-icon"></span>
-      <span class="nav-label">Cuentas</span>
-    </.link>
-    <.link href={~p"/cierre"} class="fab-button touch-target" title="Cierre de Mes">
-      <span class="hero-plus fab-icon"></span>
-    </.link>
-    <.link href={~p"/historial"} class={"nav-item #{if is_historial, do: "nav-item-active"}"}>
-      <span class="hero-chart-bar nav-icon"></span>
-      <span class="nav-label">Historial</span>
-    </.link>
-    <.link href={~p"/perfil"} class={"nav-item #{if is_perfil, do: "nav-item-active"}"}>
-      <span class="hero-user-circle nav-icon"></span>
-      <span class="nav-label">Perfil</span>
-    </.link>
-  </nav>
+  <%= if is_home || is_cuentas || is_historial || is_perfil do %>
+    <nav class="bottom-nav-floating">
+      <div class="nav-pill" style={"
+        transform: translateX(#{
+          cond do
+            is_home -> "0%"
+            is_cuentas -> "100%"
+            is_historial -> "300%"
+            is_perfil -> "400%"
+            true -> "200%" # Should not happen with the wrapper check
+          end
+        }); 
+      "}></div>
+      
+      <.link href={~p"/"} class={"nav-item #{if is_home, do: "nav-item-active"}"}>
+        <span class="hero-home nav-icon"></span>
+        <span class="nav-label">Inicio</span>
+      </.link>
+      <.link href={~p"/cuentas"} class={"nav-item #{if is_cuentas, do: "nav-item-active"}"}>
+        <span class="hero-wallet nav-icon"></span>
+        <span class="nav-label">Cuentas</span>
+      </.link>
+      <.link href={~p"/cierre"} class="fab-button touch-target" title="Cierre de Mes">
+        <span class="hero-plus fab-icon"></span>
+      </.link>
+      <.link href={~p"/historial"} class={"nav-item #{if is_historial, do: "nav-item-active"}"}>
+        <span class="hero-chart-bar nav-icon"></span>
+        <span class="nav-label">Historial</span>
+      </.link>
+      <.link href={~p"/perfil"} class={"nav-item #{if is_perfil, do: "nav-item-active"}"}>
+        <span class="hero-user-circle nav-icon"></span>
+        <span class="nav-label">Perfil</span>
+      </.link>
+    </nav>
+  <% end %>
 <% end %>
 

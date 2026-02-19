@@ -274,6 +274,40 @@ defmodule PerfiDelta.Accounts do
   end
 
   @doc """
+  Confirms a user by email (and optionally sets password). **Solo dev/test.**
+  Útil para poder entrar en local sin depender del mail.
+
+  ## Ejemplos
+
+      # Solo confirmar (luego entrás por magic link)
+      PerfiDelta.Accounts.confirm_user_for_dev("test@example.com")
+
+      # Confirmar y poner contraseña (entrás con email + contraseña)
+      PerfiDelta.Accounts.confirm_user_for_dev("test@example.com", "MiPassword123!")
+  """
+  def confirm_user_for_dev(email, password \\ nil) when is_binary(email) do
+    if Application.get_env(:perfi_delta, :env) == :prod do
+      {:error, :only_available_in_dev_test}
+    else
+      case get_user_by_email(email) do
+        nil -> {:error, :not_found}
+        user ->
+          user
+          |> User.confirm_changeset()
+          |> Repo.update()
+          |> case do
+            {:ok, user} when is_binary(password) and byte_size(password) > 0 ->
+              case update_user_password(user, %{password: password, password_confirmation: password}) do
+                {:ok, {user, _}} -> {:ok, user}
+                err -> err
+              end
+            result -> result
+          end
+      end
+    end
+  end
+
+  @doc """
   Resends confirmation instructions for an unconfirmed user.
   
   Returns `{:ok, email}` if the user exists and is unconfirmed.

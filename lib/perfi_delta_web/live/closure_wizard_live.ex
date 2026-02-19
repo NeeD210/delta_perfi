@@ -293,102 +293,69 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
 
   # parse_currency imported from NumberHelpers
 
+  import PerfiDeltaWeb.WizardComponents
+
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-lg mx-auto px-4 py-6">
-      <!-- Progress Steps -->
-      <div class="flex justify-between items-center mb-8 px-4">
-        <%= for {step, index} <- Enum.with_index(@steps) do %>
-          <div class={"stepper-step #{step_class(index, @step_index)}"}>
-            <div class="stepper-dot"></div>
-            <span class="text-xs text-base-content/50 hidden sm:block">
-              <%= step_label(step) %>
-            </span>
-          </div>
-          <%= if index < length(@steps) - 1 do %>
-            <div class={"flex-1 h-0.5 mx-2 #{if index < @step_index, do: "bg-success", else: "bg-base-300"}"}></div>
-          <% end %>
-        <% end %>
-      </div>
+    <.wizard_layout
+      steps={@steps}
+      current_step_index={@step_index}
+      step_label_fn={&step_label/1}
+      can_go_back={@step_index > 0}
+      can_go_next={@current_step != :result}
+      next_disabled={@current_step == :rates and @loading_rates}
+      next_label="Siguiente"
+      on_next="next_step"
+      on_prev="prev_step"
+      is_last_step={@current_step == :result}
+      finish_label="Confirmar Cierre"
+      on_finish="confirm_closure"
+      loading={false}
+      class="max-w-lg mx-auto px-4 py-4 flex flex-col min-h-[calc(100dvh-8rem)]"
+    >
+      <%= case @current_step do %>
+        <% :rates -> %>
+          <.step_rates
+            loading={@loading_rates}
+            dolar_blue={@dolar_blue}
+            dolar_mep={@dolar_mep}
+          />
 
-      <!-- Step Content -->
-      <div class="animate-fade-in">
-        <%= case @current_step do %>
-          <% :rates -> %>
-            <.step_rates
-              loading={@loading_rates}
-              dolar_blue={@dolar_blue}
-              dolar_mep={@dolar_mep}
-            />
+        <% :assets -> %>
+          <.step_assets
+            accounts={filter_by_types(@accounts, [:liquid, :investment])}
+            balances={@balances}
+            assets_filter={@assets_filter}
+          />
 
-          <% :assets -> %>
-            <.step_assets
-              accounts={filter_by_types(@accounts, [:liquid, :investment])}
-              balances={@balances}
-              assets_filter={@assets_filter}
-            />
+        <% :liabilities -> %>
+          <.step_liabilities
+            accounts={filter_by_types(@accounts, [:liability])}
+            balances={@balances}
+            liability_details={@liability_details}
+          />
 
-          <% :liabilities -> %>
-            <.step_liabilities
-              accounts={filter_by_types(@accounts, [:liability])}
-              balances={@balances}
-              liability_details={@liability_details}
-            />
+        <% :flows -> %>
+          <.step_flows
+            has_new_flows={@has_new_flows}
+            flows={@flows}
+            flow_amount={@flow_amount}
+            flow_direction={@flow_direction}
+          />
 
-          <% :flows -> %>
-            <.step_flows
-              has_new_flows={@has_new_flows}
-              flows={@flows}
-              flow_amount={@flow_amount}
-              flow_direction={@flow_direction}
-            />
+        <% :income -> %>
+          <.step_income
+            income={@income}
+            income_ars={@income_ars}
+            income_usd={@income_usd}
+            dolar_blue={@dolar_blue}
+          />
 
-          <% :income -> %>
-            <.step_income
-              income={@income}
-              income_ars={@income_ars}
-              income_usd={@income_usd}
-              dolar_blue={@dolar_blue}
-            />
-
-          <% :result -> %>
-            <.step_result result={@result} snapshot={@snapshot} />
-        <% end %>
-      </div>
-
-      <!-- Navigation Buttons -->
-      <div class="flex gap-3 mt-8">
-        <%= if @step_index > 0 do %>
-          <button phx-click="prev_step" class="btn btn-ghost flex-1 touch-target">
-            <span class="hero-arrow-left mr-2"></span>
-            Anterior
-          </button>
-        <% else %>
-          <div class="flex-1"></div>
-        <% end %>
-
-        <%= if @current_step == :result do %>
-          <button
-            phx-click="confirm_closure"
-            class="btn btn-primary flex-1 touch-target"
-            disabled={is_nil(@result)}
-          >
-            <span class="hero-check-circle mr-2"></span>
-            Confirmar Cierre
-          </button>
-        <% else %>
-          <button
-            phx-click="next_step"
-            class="btn btn-primary flex-1 touch-target"
-            disabled={@current_step == :rates and @loading_rates}
-          >
-            Siguiente
-            <span class="hero-arrow-right ml-2"></span>
-          </button>
-        <% end %>
-      </div>
-    </div>
+        <% :result -> %>
+          <.step_result result={@result} snapshot={@snapshot} />
+      <% end %>
+    </.wizard_layout>
     """
   end
 
@@ -429,67 +396,83 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
     ~H"""
     <div>
       <h2 class="text-2xl font-bold mb-2">Activos</h2>
-      <p class="text-base-content/60 mb-4">Actualizá los saldos de tus cuentas e inversiones.</p>
+      <p class="text-base-content/60 mb-6">Actualizá los saldos de tus cuentas e inversiones.</p>
 
-      <!-- Toggle de tipo -->
-      <div class="account-toggle account-toggle-2 mb-6">
-        <div class="account-toggle-pill" style={"transform: translateX(#{if @assets_filter == :liquid, do: "0%", else: "100%"});"}></div>
-        <button
-          phx-click="change_assets_filter"
-          phx-value-type="liquid"
-          class={"account-toggle-option #{if @assets_filter == :liquid, do: "active"}"}
-        >
-          <span class="hero-banknotes text-lg"></span>
-          <span>Líquidas</span>
-        </button>
-        <button
-          phx-click="change_assets_filter"
-          phx-value-type="investment"
-          class={"account-toggle-option #{if @assets_filter == :investment, do: "active"}"}
-        >
-          <span class="hero-chart-bar text-lg"></span>
-          <span>Inversiones</span>
-        </button>
-      </div>
-
-      <% filtered_accounts = Enum.filter(@accounts, & &1.type == @assets_filter) %>
-
-      <%= if Enum.empty?(filtered_accounts) do %>
-        <div class="text-center py-8 text-base-content/60">
-          <p>No tenés <%= if @assets_filter == :liquid, do: "cuentas líquidas", else: "inversiones" %>.</p>
-          <.link navigate={~p"/cuentas"} class="btn btn-outline btn-sm mt-4">
-            Agregar Cuentas
-          </.link>
-        </div>
-      <% else %>
-        <div class="space-y-4">
-          <%= for account <- filtered_accounts do %>
-            <div class="card-zen p-4">
-              <div class="flex items-center gap-3 mb-3">
-                <div class={"w-10 h-10 rounded-full flex items-center justify-center #{account_bg_class(account.type)}"}
-                >
-                  <span class={"text-lg #{account_icon(account.type)}"}></span>
+      <div class="space-y-8">
+        <!-- 1. Cuentas Líquidas -->
+        <% liquid = Enum.filter(@accounts, & &1.type == :liquid) |> Enum.sort_by(& &1.name) %>
+        <%= if !Enum.empty?(liquid) do %>
+          <div>
+            <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest mb-4">Cuentas Líquidas</p>
+            <div class="space-y-3">
+              <%= for account <- liquid do %>
+                <div class="card-zen p-4 border-primary/10">
+                  <div class="flex items-center gap-3 mb-3">
+                    <div class={"w-10 h-10 rounded-xl flex items-center justify-center #{account_bg_class(account.type)}"}>
+                      <span class={"text-lg #{account_icon(account.type)}"}></span>
+                    </div>
+                    <div>
+                      <p class="font-bold"><%= account.name %></p>
+                      <p class="text-[10px] uppercase font-bold opacity-30 tracking-wider"><%= account.currency %></p>
+                    </div>
+                  </div>
+                  <div class="relative">
+                    <input
+                      type="tel"
+                      inputmode="decimal"
+                      placeholder="0"
+                      value={get_balance_amount(@balances, account.id)}
+                      phx-blur="update_balance"
+                      phx-value-account_id={account.id}
+                      phx-hook="NumberFormat"
+                      id={"balance-#{account.id}"}
+                      class="input input-bordered w-full text-right font-mono-numbers text-xl pr-14 bg-base-100/50"
+                    />
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold text-xs"><%= account.currency %></span>
+                  </div>
                 </div>
-                <div>
-                  <p class="font-medium"><%= account.name %></p>
-                  <p class="text-xs text-base-content/50"><%= account.currency %></p>
-                </div>
-              </div>
-              <input
-                type="tel"
-                inputmode="decimal"
-                placeholder="0"
-                value={get_balance_amount(@balances, account.id)}
-                phx-blur="update_balance"
-                phx-value-account_id={account.id}
-                phx-hook="NumberFormat"
-                id={"balance-#{account.id}"}
-                class="input input-bordered input-currency w-full"
-              />
+              <% end %>
             </div>
-          <% end %>
-        </div>
-      <% end %>
+          </div>
+        <% end %>
+
+        <!-- 2. Inversiones -->
+        <% investments = Enum.filter(@accounts, & &1.type == :investment) |> Enum.sort_by(& &1.name) %>
+        <%= if !Enum.empty?(investments) do %>
+          <div>
+            <p class="text-xs font-bold text-base-content/40 uppercase tracking-widest mb-4">Inversiones</p>
+            <div class="space-y-3">
+              <%= for account <- investments do %>
+                <div class="card-zen p-4 border-accent/10">
+                  <div class="flex items-center gap-3 mb-3">
+                    <div class={"w-10 h-10 rounded-xl flex items-center justify-center #{account_bg_class(account.type)}"}>
+                      <span class={"text-lg #{account_icon(account.type)}"}></span>
+                    </div>
+                    <div>
+                      <p class="font-bold"><%= account.name %></p>
+                      <p class="text-[10px] uppercase font-bold opacity-30 tracking-wider"><%= account.currency %></p>
+                    </div>
+                  </div>
+                  <div class="relative">
+                    <input
+                      type="tel"
+                      inputmode="decimal"
+                      placeholder="0"
+                      value={get_balance_amount(@balances, account.id)}
+                      phx-blur="update_balance"
+                      phx-value-account_id={account.id}
+                      phx-hook="NumberFormat"
+                      id={"balance-#{account.id}"}
+                      class="input input-bordered w-full text-right font-mono-numbers text-xl pr-14 bg-base-100/50"
+                    />
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold text-xs"><%= account.currency %></span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
     </div>
     """
   end
@@ -508,10 +491,12 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
           <p>¡No tenés deudas registradas!</p>
         </div>
       <% else %>
-        <% grouped = Enum.group_by(@accounts, & &1.name) %>
-        <div class="space-y-6">
-          <%= for {name, group} <- grouped do %>
-            <div class="card-zen p-5 border-error/20">
+      <% grouped = Enum.group_by(@accounts, & &1.name) |> Enum.sort_by(fn {name, _} -> name end) %>
+      <% currency_order = fn c -> case c do "ARS" -> 0; "USD" -> 1; _ -> 2 end end %>
+      <div class="space-y-6">
+        <%= for {name, group} <- grouped do %>
+          <% ordered = Enum.sort_by(group, &currency_order.(&1.currency)) %>
+          <div class="card-zen p-5 border-error/10">
               <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 rounded-full bg-error/10 flex items-center justify-center">
                   <span class="hero-credit-card text-lg text-error"></span>
@@ -519,22 +504,26 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
                 <div>
                   <p class="font-bold text-lg"><%= name %></p>
                   <div class="flex gap-1">
-                    <%= for acc <- group do %>
+                    <%= for acc <- ordered do %>
                       <span class="badge badge-xs badge-ghost"><%= acc.currency %></span>
                     <% end %>
                   </div>
                 </div>
               </div>
 
-              <div class="space-y-6">
-                <%= for account <- group do %>
-                  <div class={if length(group) > 1, do: "pt-4 border-t border-error/10", else: ""}>
-                    <%= if length(group) > 1 do %>
-                      <p class="text-xs font-bold text-base-content/40 uppercase mb-3"><%= account.currency %></p>
-                    <% end %>
-                    <div class="grid grid-cols-2 gap-3">
-                      <div>
-                        <label class="text-xs text-base-content/50 mb-1 block">Consumo Actual</label>
+              <div class="space-y-8">
+                <%= for account <- ordered do %>
+                  <div class="space-y-4 pt-4 border-t border-error/10 first:pt-0 first:border-0">
+                    <div class="flex items-center gap-2">
+                      <div class="h-px flex-1 border-t border-error/10"></div>
+                      <span class="text-[10px] uppercase font-bold opacity-30 tracking-widest px-2"><%= account.currency %></span>
+                      <div class="h-px flex-1 border-t border-error/10"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <!-- Consumo Actual -->
+                      <div class="space-y-1.5">
+                        <label class="text-[10px] uppercase tracking-wider font-bold opacity-40 ml-1">Consumo Actual</label>
                         <div class="relative">
                           <input
                             type="tel"
@@ -546,13 +535,17 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
                             phx-value-field="current"
                             phx-hook="NumberFormat"
                             id={"liability-current-#{account.id}"}
-                            class="input input-bordered w-full text-right font-mono-numbers pr-14"
+                            class="input input-bordered w-full text-right font-mono-numbers text-xl pr-14 bg-base-100/50"
                           />
-                          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/30 text-xs font-bold"><%= account.currency %></span>
+                          <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold text-xs uppercase">
+                            <%= account.currency %>
+                          </span>
                         </div>
                       </div>
-                      <div>
-                        <label class="text-xs text-base-content/50 mb-1 block">Cuotas Futuras</label>
+
+                      <!-- Cuotas Futuras -->
+                      <div class="space-y-1.5">
+                        <label class="text-[10px] uppercase tracking-wider font-bold opacity-40 ml-1">Cuotas Futuras</label>
                         <div class="relative">
                           <input
                             type="tel"
@@ -564,9 +557,11 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
                             phx-value-field="future"
                             phx-hook="NumberFormat"
                             id={"liability-future-#{account.id}"}
-                            class="input input-bordered w-full text-right font-mono-numbers pr-14"
+                            class="input input-bordered w-full text-right font-mono-numbers text-xl pr-14 bg-base-100/50"
                           />
-                          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/30 text-xs font-bold"><%= account.currency %></span>
+                          <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold text-xs uppercase">
+                            <%= account.currency %>
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -695,12 +690,12 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
               type="tel"
               inputmode="decimal"
               placeholder="0"
-              value={@income_ars}
+              value={format_income_string(@income_ars)}
               phx-blur="update_income"
               phx-value-currency="ARS"
               phx-hook="NumberFormat"
               id="closure-income-ars"
-              class="input input-bordered w-full text-xl font-mono-numbers text-right pr-16"
+              class="input input-lg w-full bg-base-100/50 border-base-content/10 focus:border-primary/30 text-right font-mono-numbers text-2xl pr-20"
             />
             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold">ARS</span>
           </div>
@@ -713,12 +708,12 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
               type="tel"
               inputmode="decimal"
               placeholder="0"
-              value={@income_usd}
+              value={format_income_string(@income_usd)}
               phx-blur="update_income"
               phx-value-currency="USD"
               phx-hook="NumberFormat"
               id="closure-income-usd"
-              class="input input-bordered w-full text-xl font-mono-numbers text-right pr-16"
+              class="input input-lg w-full bg-base-100/50 border-base-content/10 focus:border-primary/30 text-right font-mono-numbers text-2xl pr-20"
             />
             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold">USD</span>
           </div>
@@ -826,21 +821,24 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
 
   defp get_balance_amount(balances, account_id) do
     case Map.get(balances, account_id) do
-      %{amount_nominal: amount} -> format_smart_currency(amount)
+      %{amount_nominal: amount} -> 
+        if Decimal.equal?(amount, Decimal.new(0)), do: "", else: format_smart_currency(amount)
       _ -> ""
     end
   end
 
   defp get_liability_current(details, account_id) do
     case Map.get(details, account_id) do
-      %{current_period_balance: amount} -> format_smart_currency(amount)
+      %{current_period_balance: amount} -> 
+        if Decimal.equal?(amount, Decimal.new(0)), do: "", else: format_smart_currency(amount)
       _ -> ""
     end
   end
 
   defp get_liability_future(details, account_id) do
     case Map.get(details, account_id) do
-      %{future_installments_balance: amount} -> format_smart_currency(amount)
+      %{future_installments_balance: amount} -> 
+        if Decimal.equal?(amount, Decimal.new(0)), do: "", else: format_smart_currency(amount)
       _ -> ""
     end
   end
@@ -864,4 +862,16 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
   defp account_icon(:liability), do: "hero-credit-card"
 
   # format_smart_currency imported from NumberHelpers
+
+  defp step_label(:rates), do: "Tasas"
+  defp step_label(:assets), do: "Activos"
+  defp step_label(:liabilities), do: "Pasivos"
+  defp step_label(:flows), do: "Flujos"
+  defp step_label(:income), do: "Ingresos"
+  defp step_label(:result), do: "Resultados"
+  defp step_label(step), do: Phoenix.Naming.humanize(step)
+
+  defp format_income_string(val) do
+    if val == "0" || val == "0,00" || val == 0, do: "", else: val
+  end
 end

@@ -159,7 +159,7 @@ defmodule PerfiDeltaWeb.AccountsLive do
       <%= if @show_form do %>
         <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" phx-click="hide_form"></div>
-          <div class="glass-card relative z-10 w-full max-w-md p-6 animate-scale-in max-h-[85vh] overflow-y-auto">
+          <div class="glass-card relative z-10 w-full max-w-md px-4 py-6 animate-scale-in max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-xl font-bold text-gradient-hero">
                 <%= if @editing_account, do: "Editar Cuenta", else: "Nueva Cuenta" %>

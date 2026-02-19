@@ -8,7 +8,7 @@ defmodule PerfiDeltaWeb.UserLive.Settings do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <div class="max-w-lg mx-auto px-4 py-6">
       <div class="text-center">
         <.header>
           Configuración de Cuenta
@@ -62,7 +62,7 @@ defmodule PerfiDeltaWeb.UserLive.Settings do
           Guardar Contraseña
         </.button>
       </.form>
-    </Layouts.app>
+    </div>
     """
   end
 

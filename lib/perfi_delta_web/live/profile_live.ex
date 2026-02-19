@@ -48,7 +48,7 @@ defmodule PerfiDeltaWeb.ProfileLive do
         </div>
 
         <!-- Settings Link -->
-        <.link href={~p"/users/settings"} class="list-item-glass animate-fade-in stagger-2">
+        <.link navigate={~p"/users/settings"} class="list-item-glass animate-fade-in stagger-2">
           <div class="icon-badge icon-badge-liquid">
             <span class="hero-cog-6-tooth"></span>
           </div>

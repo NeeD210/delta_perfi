@@ -104,7 +104,7 @@ defmodule PerfiDeltaWeb.HistoryLive do
       <!-- Modal de detalle -->
       <%= if @selected_snapshot do %>
         <div class="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center p-4">
-          <div class="card-zen w-full max-w-md max-h-[80vh] overflow-y-auto p-6 animate-fade-in">
+          <div class="card-zen w-full max-w-md max-h-[80vh] overflow-y-auto px-4 py-6 animate-fade-in">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-bold">
                 <%= format_month(@selected_snapshot.month) %> <%= @selected_snapshot.year %>

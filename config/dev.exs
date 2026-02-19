@@ -90,10 +90,6 @@ config :phoenix_live_view,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
 
-# Disable swoosh api client as it is only required for production adapters.
-# If you want to use a real adapter like Resend in dev, set RESEND_API_KEY.
-if System.get_env("RESEND_API_KEY") do
-  config :swoosh, :api_client, Swoosh.ApiClient.Req
-else
-  config :swoosh, :api_client, false
-end
+# En dev siempre mailbox local: mails en /dev/mailbox. Resend no se usa en dev.
+config :perfi_delta, PerfiDelta.Mailer, adapter: Swoosh.Adapters.Local
+config :swoosh, :api_client, false

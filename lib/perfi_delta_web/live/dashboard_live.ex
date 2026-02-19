@@ -119,17 +119,6 @@ defmodule PerfiDeltaWeb.DashboardLive do
                 <%= format_display_currency(@latest_snapshot.total_net_worth_usd, @display_currency, @dolar_rate) %>
               </p>
 
-              <!-- Progress-like indicator -->
-              <div class="mb-6">
-                <div class="flex justify-between text-xs opacity-60 mb-2">
-                  <span>Balance General</span>
-                  <span>100%</span>
-                </div>
-                <div class="progress-glass">
-                  <div class="progress-glass-fill" style="width: 100%"></div>
-                </div>
-              </div>
-
               <%= if @is_zero_state do %>
                 <!-- Zero State: Línea base establecida -->
                 <div class="glass-card-static p-5 rounded-xl text-center">
@@ -170,7 +159,7 @@ defmodule PerfiDeltaWeb.DashboardLive do
                 </div>
               <% end %>
 
-              <%= if @runway do %>
+              <%= if @runway && !@is_zero_state do %>
                 <!-- Runway Card (Libertad Financiera) -->
                 <div class="mt-6 pt-6 border-t border-base-content/10">
                   <div class="flex items-center justify-between mb-2">

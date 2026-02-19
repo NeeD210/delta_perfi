@@ -123,7 +123,13 @@ defmodule PerfiDeltaWeb.OnboardingLive do
   def handle_event("show_form", %{"type" => type}, socket) do
     type_atom = String.to_existing_atom(type)
     # Using a plain map for the form data since we need custom handling for currencies
-    form_data = %{"name" => nil, "currencies" => [], "original_name" => nil}
+    initial_currencies =
+      case type_atom do
+        :liquid -> ["ARS"]
+        :liability -> ["ARS", "USD"]
+        _ -> []
+      end
+    form_data = %{"name" => nil, "currencies" => initial_currencies, "original_name" => nil}
 
     {:noreply,
      socket
@@ -440,7 +446,13 @@ defmodule PerfiDeltaWeb.OnboardingLive do
     accounts = socket.assigns.accounts
     
     if Enum.empty?(Enum.filter(accounts, & &1.type == type)) do
-      form_data = %{"name" => nil, "currencies" => [], "original_name" => nil}
+      initial_currencies =
+        case type do
+          :liquid -> ["ARS"]
+          :liability -> ["ARS", "USD"]
+          _ -> []
+        end
+      form_data = %{"name" => nil, "currencies" => initial_currencies, "original_name" => nil}
       socket
       |> assign(:show_form, true)
       |> assign(:form_type, type)
@@ -538,23 +550,28 @@ defmodule PerfiDeltaWeb.OnboardingLive do
   defp step_name(7), do: "Ingresos"
   defp step_name(8), do: "Resumen"
 
+  import PerfiDeltaWeb.WizardComponents
+
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-lg mx-auto px-4 py-6">
-      <!-- Progress Glass -->
-      <div class="glass-card-static p-3 mb-8 animate-fade-in">
-        <div class="flex items-center gap-2">
-          <%= for i <- 1..8 do %>
-            <div class={"h-1.5 flex-1 rounded-full transition-all duration-300 #{if i <= @step, do: "bg-gradient-to-r from-indigo-500 to-purple-500", else: "bg-gray-300/50"}"}></div>
-          <% end %>
-        </div>
-        <div class="flex justify-between mt-2 text-xs opacity-50">
-          <span>Paso <%= @step %> de 8</span>
-          <span><%= step_name(@step) %></span>
-        </div>
-      </div>
-
+    <.wizard_layout
+      steps={8}
+      current_step_index={@step - 1}
+      step_label_fn={&step_name/1}
+      can_go_back={@step > 1}
+      can_go_next={true}
+      next_disabled={
+        (@step >= 3 and @step <= 5 and Enum.empty?(Enum.filter(@accounts, & &1.type == current_step_type(@step))) and false)
+      }
+      next_label={if @step == 1, do: "Comenzar", else: "Siguiente"}
+      on_next="next_step"
+      on_prev="prev_step"
+      is_last_step={@step == 8}
+      finish_label="Completar Setup"
+      on_finish="complete_onboarding"
+      loading={false}
+    >
       <%= case @step do %>
         <% 1 -> %>
           <.step_welcome />
@@ -612,39 +629,8 @@ defmodule PerfiDeltaWeb.OnboardingLive do
             income={@income}
           />
       <% end %>
-
-      <!-- Navigation Glass -->
-      <div class="flex gap-3 mt-8">
-        <%= if @step > 1 do %>
-          <button phx-click="prev_step" class="btn btn-glass flex-1 touch-target">
-            <span class="hero-arrow-left mr-2"></span>
-            Anterior
-          </button>
-        <% else %>
-          <div class="flex-1"></div>
-        <% end %>
-
-         <%= if @step == 8 do %>
-          <button
-            phx-click="complete_onboarding"
-            class="fab-button-pill flex-1 h-14 touch-target"
-            disabled={Enum.empty?(@accounts)}
-          >
-            <span class="hero-check mr-2"></span>
-            Completar Setup
-          </button>
-        <% else %>
-          <button
-            phx-click="next_step"
-            class="fab-button-pill flex-1 h-14 touch-target"
-            disabled={@step >= 3 and @step <= 5 and Enum.empty?(Enum.filter(@accounts, & &1.type == current_step_type(@step))) and false}
-          >
-            <%= if @step == 1, do: "Comenzar", else: "Siguiente" %>
-            <span class="hero-arrow-right ml-2"></span>
-          </button>
-        <% end %>
-      </div>
-    </div>
+    </.wizard_layout>
+    <!-- Force Recompile -->
     """
   end
 
@@ -671,7 +657,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
     ~H"""
     <div>
       <h2 class="text-2xl font-bold mb-2"><%= @title %></h2>
-      <p class="text-base-content/60 mb-6">
+      <p class="text-base-content/60 mb-8">
         <%= @description %>
       </p>
 
@@ -680,17 +666,17 @@ defmodule PerfiDeltaWeb.OnboardingLive do
         <button
           phx-click="show_form"
           phx-value-type={@type}
-          class={"btn btn-outline btn-lg w-full flex items-center gap-3 #{account_btn_class(@type)}"}
+          class="w-full p-4 rounded-xl border-2 border-dashed border-base-300 hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-3 group"
         >
-          <span class={account_icon(@type)}></span>
-          <span>Agregar <%= account_type_label(@type) %></span>
+          <span class={"#{account_icon(@type)} text-xl text-base-content/50 group-hover:text-primary transition-colors"}></span>
+          <span class="font-bold text-base-content/70 group-hover:text-primary transition-colors">Agregar <%= account_type_label(@type) %></span>
         </button>
       </div>
 
       <!-- Modal Form -->
       <%= if @show_form do %>
         <div class="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
-          <div class="card-zen w-full max-w-md p-6 animate-fade-in">
+          <div class="card-zen w-full max-w-md px-4 py-6 animate-fade-in">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-bold">Nueva Cuenta</h3>
               <button phx-click="hide_form" class="btn btn-ghost btn-circle btn-sm">
@@ -752,10 +738,10 @@ defmodule PerfiDeltaWeb.OnboardingLive do
       <% grouped_accounts = Enum.group_by(current_accounts, & &1.name) %>
       
       <%= if map_size(grouped_accounts) > 0 do %>
-        <div class="space-y-2">
+        <div class="space-y-3">
           <%= for {name, group} <- grouped_accounts do %>
             <% first = hd(group) %>
-            <div class="card-zen p-3 flex items-center justify-between">
+            <div class="card-zen p-5 flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <div class={"w-10 h-10 rounded-full flex items-center justify-center #{account_bg_class(first.type)}"}>
                   <span class={"text-lg #{account_icon(first.type)}"}></span>
@@ -812,11 +798,11 @@ defmodule PerfiDeltaWeb.OnboardingLive do
       <% end %>
 
       <div class="space-y-6">
-        <!-- Activos (Líquidos e Inversiones) -->
-        <% assets = Enum.filter(@accounts, & &1.type in [:liquid, :investment]) %>
-        <% grouped_assets = Enum.group_by(assets, & &1.name) %>
+        <!-- 1. Cuentas Líquidas -->
+        <% liquid = Enum.filter(@accounts, & &1.type == :liquid) %>
+        <% grouped_liquid = Enum.group_by(liquid, & &1.name) |> Enum.sort_by(fn {name, _} -> name end) %>
         
-        <%= for {name, group} <- grouped_assets do %>
+        <%= for {name, group} <- grouped_liquid do %>
           <% first = hd(group) %>
           <div class={["p-5 transition-all duration-300", account_card_class(first.type)]}>
             <div class="flex items-center justify-between mb-5">
@@ -860,9 +846,57 @@ defmodule PerfiDeltaWeb.OnboardingLive do
           </div>
         <% end %>
 
-        <!-- Pasivos (Deudas) -->
+        <!-- 2. Inversiones -->
+        <% investments = Enum.filter(@accounts, & &1.type == :investment) %>
+        <% grouped_investments = Enum.group_by(investments, & &1.name) |> Enum.sort_by(fn {name, _} -> name end) %>
+        
+        <%= for {name, group} <- grouped_investments do %>
+          <% first = hd(group) %>
+          <div class={["p-5 transition-all duration-300", account_card_class(first.type)]}>
+            <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center gap-3">
+                <div class={["w-10 h-10 rounded-xl flex items-center justify-center shadow-sm", account_bg_class(first.type)]}>
+                  <span class={["text-xl", account_icon(first.type)]}></span>
+                </div>
+                <div>
+                  <p class="font-bold text-lg leading-none mb-1"><%= name %></p>
+                  <p class="text-xs uppercase tracking-widest font-semibold #{account_text_class(first.type)}"><%= account_type_label(first.type) %></p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="space-y-4">
+              <%= for account <- group do %>
+                  <div class="relative group">
+                      <input
+                        type="tel"
+                        inputmode="decimal"
+                        placeholder="0"
+                        value={get_balance(@balances, account.id)}
+                        phx-blur="update_balance"
+                        phx-value-account_id={account.id}
+                        phx-hook="NumberFormat"
+                        id={"balance-#{account.id}"}
+                        class="input input-lg w-full bg-base-100/50 border-base-content/10 focus:border-primary/30 text-right font-mono-numbers text-2xl pr-20"
+                      />
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/30 font-bold text-sm pointer-events-none">
+                      <%= account.currency %>
+                    </span>
+                    <!-- USD Conversion Indicator -->
+                    <%= if account.currency != "USD" and Map.has_key?(@balances, account.id) do %>
+                      <div class="text-right mt-1 pr-2 text-xs opacity-40 font-mono-numbers">
+                        ≈ US$ <%= @balances[account.id].amount_usd %>
+                      </div>
+                    <% end %>
+                  </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- 3. Pasivos (Deudas) -->
         <% liabilities = Enum.filter(@accounts, & &1.type == :liability) %>
-        <% grouped_liabilities = Enum.group_by(liabilities, & &1.name) %>
+        <% grouped_liabilities = Enum.group_by(liabilities, & &1.name) |> Enum.sort_by(fn {name, _} -> name end) %>
         
         <%= for {name, group} <- grouped_liabilities do %>
           <% first = hd(group) %>
@@ -1004,7 +1038,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
                   type="tel"
                   inputmode="decimal"
                   placeholder="0"
-                  value={Decimal.to_string(@income.ars) |> String.replace(".", ",")}
+                  value={format_income_value(@income.ars)}
                   phx-blur="update_income"
                   phx-value-currency="ARS"
                   phx-hook="NumberFormat"
@@ -1024,7 +1058,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
                   type="tel"
                   inputmode="decimal"
                   placeholder="0"
-                  value={Decimal.to_string(@income.usd) |> String.replace(".", ",")}
+                  value={format_income_value(@income.usd)}
                   phx-blur="update_income"
                   phx-value-currency="USD"
                   phx-hook="NumberFormat"
@@ -1133,77 +1167,29 @@ defmodule PerfiDeltaWeb.OnboardingLive do
   end
 
   defp step_investments(assigns) do
-    presets = [
-      %{name: "Bitcoin", currency: "BTC", icon: "hero-currency-dollar"},
-      %{name: "Ethereum", currency: "ETH", icon: "hero-currency-dollar"},
-      %{name: "USDT", currency: "USDT", icon: "hero-currency-dollar"},
-      %{name: "S&P 500", currency: "USD", icon: "hero-chart-bar"},
-      %{name: "FCI Money Market", currency: "ARS", icon: "hero-banknotes"}
-    ]
-    
-    assigns = assign(assigns, :presets, presets)
-    
     ~H"""
     <div>
       <h2 class="text-2xl font-bold mb-2">Tus Inversiones</h2>
-      <p class="text-base-content/60 mb-6">
-        Seleccioná las inversiones que tenés actualmente.
+      <p class="text-base-content/60 mb-8">
+        Agrega tus cuentas: Podes agregarlas por plataforma (Binance, iol) o por instrumento (CEDEARs, Bitcoin).
       </p>
 
-      <div class="space-y-3 mb-8">
-        <%= for preset <- @presets do %>
-          <% 
-             is_selected = Enum.any?(@accounts, fn a -> 
-               a.type == :investment and a.name == preset.name and a.currency == preset.currency 
-             end)
-          %>
-          <button
-            phx-click="toggle_investment_preset"
-            phx-value-name={preset.name}
-            phx-value-currency={preset.currency}
-            class={"w-full p-3 rounded-lg border-2 transition-all flex items-center justify-between group #{
-              if is_selected, do: "border-primary bg-primary/5", else: "border-base-200 hover:border-primary/50"
-            }"}
-          >
-            <div class="flex items-center gap-3">
-              <div class={"w-10 h-10 rounded-full flex items-center justify-center transition-colors #{
-                if is_selected, do: "bg-primary text-primary-content", else: "bg-base-200 text-base-content/50"
-              }"}>
-                <span class={preset.icon}></span>
-              </div>
-              <div class="text-left">
-                <p class={"font-medium #{if is_selected, do: "text-primary"}"}><%= preset.name %></p>
-                <p class="text-xs text-base-content/50"><%= preset.currency %></p>
-              </div>
-            </div>
-            
-            <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all #{
-              if is_selected, do: "border-primary bg-primary", else: "border-base-300"
-            }"}>
-              <span class="hero-check text-white text-xs"></span>
-            </div>
-          </button>
-        <% end %>
-      </div>
-
-      <div class="divider text-xs text-base-content/40">O agregá otra</div>
-
-      <!-- Botón para agregar custom -->
+      <!-- Botón para agregar -->
       <div class="mb-6">
         <button
           phx-click="show_form"
           phx-value-type="investment"
-          class="btn btn-outline btn-block"
+          class="w-full p-4 rounded-xl border-2 border-dashed border-base-300 hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-3 group"
         >
-          <span class="hero-plus"></span>
-          <span>Agregar Otra Inversión</span>
+          <span class="hero-plus text-xl text-base-content/50 group-hover:text-primary transition-colors"></span>
+          <span class="font-bold text-base-content/70 group-hover:text-primary transition-colors">Agregar Inversión</span>
         </button>
       </div>
 
       <!-- Modal Form (Standard) -->
       <%= if @show_form do %>
         <div class="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
-          <div class="card-zen w-full max-w-md p-6 animate-fade-in">
+          <div class="card-zen w-full max-w-md px-4 py-6 animate-fade-in">
              <!-- Same form logic as generic step -->
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-bold">Nueva Inversión</h3>
@@ -1261,21 +1247,17 @@ defmodule PerfiDeltaWeb.OnboardingLive do
         </div>
       <% end %>
 
-      <!-- Custom added accounts list (Only those NOT in presets) -->
+      <!-- All Investment Accounts -->
       <% 
-         preset_keys = Enum.map(@presets, & {&1.name, &1.currency})
-         custom_accounts = Enum.filter(@accounts, fn a -> 
-           a.type == :investment and {a.name, a.currency} not in preset_keys 
-         end)
-         grouped_custom = Enum.group_by(custom_accounts, & &1.name)
+         investments = Enum.filter(@accounts, & &1.type == :investment)
+         grouped_investments = Enum.group_by(investments, & &1.name)
       %>
       
-      <%= if map_size(grouped_custom) > 0 do %>
-        <div class="space-y-2 mt-4">
-          <h3 class="font-bold text-sm text-base-content/50 uppercase">Otras Inversiones</h3>
-          <%= for {name, group} <- grouped_custom do %>
+      <%= if map_size(grouped_investments) > 0 do %>
+        <div class="space-y-3 mt-4">
+          <%= for {name, group} <- grouped_investments do %>
             <% first = hd(group) %>
-            <div class="card-zen p-3 flex items-center justify-between">
+            <div class="card-zen p-5 flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <div class={"w-10 h-10 rounded-full flex items-center justify-center #{account_bg_class(first.type)}"}>
                   <span class={"text-lg #{account_icon(first.type)}"}></span>
@@ -1310,6 +1292,10 @@ defmodule PerfiDeltaWeb.OnboardingLive do
             </div>
           <% end %>
         </div>
+      <% else %>
+        <div class="text-center py-8 text-base-content/40">
+          <p>No agregaste ninguna inversión todavía.</p>
+        </div>
       <% end %>
 
     </div>
@@ -1325,26 +1311,27 @@ defmodule PerfiDeltaWeb.OnboardingLive do
   defp placeholder_for_type(:liability), do: "Ej: Visa, Préstamo"
 
   defp currencies_for_type(:liquid) do
-    [{"ARS - Peso Argentino", "ARS"}, {"USD - Dólar", "USD"}]
+    [{"Peso Argentino", "ARS"}, {"Dolar", "USD"}]
   end
 
   defp currencies_for_type(:investment) do
     [
-      {"USD - Dólar", "USD"},
+      {"Dolar", "USD"},
       {"USDT - Tether", "USDT"},
       {"BTC - Bitcoin", "BTC"},
       {"ETH - Ethereum", "ETH"},
-      {"ARS - Peso Argentino", "ARS"}
+      {"Peso Argentino", "ARS"}
     ]
   end
 
   defp currencies_for_type(:liability) do
-    [{"ARS - Peso Argentino", "ARS"}, {"USD - Dólar", "USD"}]
+    [{"Peso Argentino", "ARS"}, {"Dolar", "USD"}]
   end
 
   defp get_balance(balances, account_id) do
     case Map.get(balances, account_id) do
-      %{amount_nominal: amount} -> amount |> Decimal.to_string() |> String.replace(".", ",")
+      %{amount_nominal: amount} -> 
+        if Decimal.equal?(amount, Decimal.new(0)), do: "", else: amount |> Decimal.to_string() |> String.replace(".", ",")
       _ -> ""
     end
   end
@@ -1354,8 +1341,12 @@ defmodule PerfiDeltaWeb.OnboardingLive do
       nil -> ""
       detail -> 
         val = Map.get(detail, field)
-        if val, do: val |> Decimal.to_string() |> String.replace(".", ","), else: ""
+        if val && !Decimal.equal?(val, Decimal.new(0)), do: val |> Decimal.to_string() |> String.replace(".", ","), else: ""
     end
+  end
+
+  defp format_income_value(decimal) do
+    if Decimal.equal?(decimal, Decimal.new(0)), do: "", else: Decimal.to_string(decimal) |> String.replace(".", ",")
   end
 
   defp calculate_net_worth(balances) do

@@ -112,19 +112,21 @@ end
 # 2. Get your API key from the dashboard
 # 3. Set RESEND_API_KEY environment variable
 # 4. Optionally set FROM_EMAIL (defaults to onboarding@resend.dev)
+#
+# En dev/test siempre se usa mailbox local (/dev/mailbox). Resend solo en prod.
 
 resend_api_key = System.get_env("RESEND_API_KEY")
 
-if config_env() == :prod and is_nil(resend_api_key) do
-  raise """
-  environment variable RESEND_API_KEY is missing.
-  In production, this is required to send emails via Resend.
-  1. Get an API key at https://resend.com
-  2. Set it using: fly secrets set RESEND_API_KEY=re_...
-  """
-end
+if config_env() == :prod do
+  if is_nil(resend_api_key) do
+    raise """
+    environment variable RESEND_API_KEY is missing.
+    In production, this is required to send emails via Resend.
+    1. Get an API key at https://resend.com
+    2. Set it using: fly secrets set RESEND_API_KEY=re_...
+    """
+  end
 
-if resend_api_key do
   config :perfi_delta, PerfiDelta.Mailer,
     adapter: Swoosh.Adapters.Resend,
     api_key: resend_api_key

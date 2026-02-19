@@ -7,7 +7,7 @@ defmodule PerfiDeltaWeb.UserLive.Confirmation do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm">
+      <div class="mx-auto max-w-sm min-h-[60vh] flex flex-col justify-center px-4">
         <div class="text-center">
           <.header>Bienvenido {@user.email}</.header>
         </div>
@@ -20,17 +20,18 @@ defmodule PerfiDeltaWeb.UserLive.Confirmation do
           phx-submit="submit"
           action={~p"/users/log-in?_action=confirmed"}
           phx-trigger-action={@trigger_submit}
+          class="flex flex-col items-center gap-4 mt-6"
         >
           <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
           <.button
             name={@form[:remember_me].name}
             value="true"
             phx-disable-with="Confirmando..."
-            class="btn btn-primary w-full"
+            class="btn btn-primary w-full max-w-xs"
           >
             Confirmar y mantenerme conectado
           </.button>
-          <.button phx-disable-with="Confirmando..." class="btn btn-primary btn-soft w-full mt-2">
+          <.button phx-disable-with="Confirmando..." class="btn btn-primary btn-soft w-full max-w-xs">
             Confirmar e iniciar sesión solo esta vez
           </.button>
         </.form>
@@ -43,10 +44,11 @@ defmodule PerfiDeltaWeb.UserLive.Confirmation do
           phx-mounted={JS.focus_first()}
           action={~p"/users/log-in"}
           phx-trigger-action={@trigger_submit}
+          class="flex flex-col items-center gap-4 mt-6"
         >
           <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
           <%= if @current_scope do %>
-            <.button phx-disable-with="Iniciando sesión..." class="btn btn-primary w-full">
+            <.button phx-disable-with="Iniciando sesión..." class="btn btn-primary w-full max-w-xs">
               Iniciar sesión
             </.button>
           <% else %>
@@ -54,11 +56,11 @@ defmodule PerfiDeltaWeb.UserLive.Confirmation do
               name={@form[:remember_me].name}
               value="true"
               phx-disable-with="Iniciando sesión..."
-              class="btn btn-primary w-full"
+              class="btn btn-primary w-full max-w-xs"
             >
               Mantenerme conectado en este dispositivo
             </.button>
-            <.button phx-disable-with="Iniciando sesión..." class="btn btn-primary btn-soft w-full mt-2">
+            <.button phx-disable-with="Iniciando sesión..." class="btn btn-primary btn-soft w-full max-w-xs">
               Iniciar sesión solo esta vez
             </.button>
           <% end %>

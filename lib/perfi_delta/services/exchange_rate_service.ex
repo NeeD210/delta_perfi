@@ -1,7 +1,7 @@
 defmodule PerfiDelta.Services.ExchangeRateService do
   @moduledoc """
   Servicio para obtener cotizaciones de APIs externas.
-  - Dólar Blue/MEP: DolarApi
+  - Dólar Blue/MEP: DolarApi (dolarapi.com/v1/dolares; casa "blue" y "bolsa", campo "venta")
   - Crypto: Binance
   """
 

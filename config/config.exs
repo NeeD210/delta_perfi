@@ -7,6 +7,8 @@
 # General application configuration
 import Config
 
+config :perfi_delta, env: Mix.env()
+
 config :perfi_delta, :scopes,
   user: [
     default: true,
