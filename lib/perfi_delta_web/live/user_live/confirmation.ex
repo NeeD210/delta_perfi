@@ -6,7 +6,7 @@ defmodule PerfiDeltaWeb.UserLive.Confirmation do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <Layouts.app view_module={__MODULE__} flash={@flash} current_scope={@current_scope}>
       <div class="mx-auto max-w-sm min-h-[60vh] flex flex-col justify-center px-4">
         <div class="text-center">
           <.header>Bienvenido {@user.email}</.header>

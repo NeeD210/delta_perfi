@@ -6,7 +6,7 @@ defmodule PerfiDeltaWeb.WizardComponents do
   """
   use Phoenix.Component
 
-  attr :steps, :list, required: true, doc: "Lista de pasos o número total de pasos"
+  attr :steps, :any, required: true, doc: "Lista de pasos o número total de pasos (Rango, Lista o Entero)"
   attr :current_step_index, :integer, required: true, doc: "Índice del paso actual (0-based)"
   attr :step_label_fn, :any, default: nil, doc: "Función para obtener label del paso. Si es nil, usa el valor del paso si es string."
   attr :can_go_back, :boolean, default: true
@@ -55,7 +55,7 @@ defmodule PerfiDeltaWeb.WizardComponents do
     """
   end
 
-  attr :steps, :list, required: true
+  attr :steps, :any, required: true
   attr :current_index, :integer, required: true
   attr :label_fn, :any
 

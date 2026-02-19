@@ -1,11 +1,22 @@
-<header class="sticky top-0 z-40 header-glass">
+<%
+  # Detect current view from assigns (when passed as attribute) or socket
+  view = assigns[:view_module]
+  
+  is_auth_page = view in [
+    PerfiDeltaWeb.UserLive.Login, 
+    PerfiDeltaWeb.UserLive.Registration,
+    PerfiDeltaWeb.UserLive.Confirmation,
+    PerfiDeltaWeb.UserLive.ResendConfirmation
+  ]
+%>
+
+<header :if={!is_auth_page} class="sticky top-0 z-40 header-glass">
   <div class="flex items-center justify-between px-4 py-3 max-w-lg mx-auto">
-    <.link href={~p"/"} class="text-xl font-bold tracking-tight text-gradient-hero">
-      PerFi <span class="opacity-50">Δ</span>
+    <.link href={~p"/"} class="flex items-center gap-1">
+      <img src={~p"/images/PerFi_logo.png"} class="h-7 w-auto block dark:hidden" alt="PerFi Delta" />
+      <img src={~p"/images/perfi_logo_dark.png"} class="h-7 w-auto hidden dark:block" alt="PerFi Delta" />
     </.link>
-    <%= if !@current_scope do %>
-      <PerfiDeltaWeb.Layouts.theme_toggle />
-    <% end %>
+    <PerfiDeltaWeb.Layouts.theme_toggle />
   </div>
 </header>
 
@@ -13,6 +24,11 @@
   <.flash_group flash={@flash} />
   {assigns[:inner_content] || render_slot(@inner_block)}
 </main>
+
+<!-- Floating Theme Toggle (only for auth pages) -->
+<div :if={is_auth_page} class="fixed bottom-6 right-6 z-50">
+  <PerfiDeltaWeb.Layouts.theme_toggle />
+</div>
 
 <%= if @current_scope do %>
   <% 

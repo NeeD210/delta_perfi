@@ -6,128 +6,186 @@ defmodule PerfiDeltaWeb.UserLive.Login do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm space-y-6">
-        <div class="text-center">
-          <.header>
-            <p>Iniciar sesión</p>
-            <:subtitle>
-              <%= if @current_scope do %>
-                Necesitas reautenticarte para realizar acciones sensibles.
-              <% else %>
-                ¿No tienes una cuenta? <.link
-                  navigate={~p"/users/register"}
-                  class="font-semibold text-brand hover:underline"
-                  phx-no-format
-                >Regístrate</.link>
-              <% end %>
-            </:subtitle>
-          </.header>
-        </div>
-
-        <!-- Tab selection -->
-        <div role="tablist" class="tabs tabs-boxed bg-base-200">
-          <button
-            type="button"
-            role="tab"
-            class={["tab", @login_method == :magic && "tab-active"]}
-            phx-click="select_method"
-            phx-value-method="magic"
-          >
-            Enlace Mágico
-          </button>
-          <button
-            type="button"
-            role="tab"
-            class={["tab", @login_method == :password && "tab-active"]}
-            phx-click="select_method"
-            phx-value-method="password"
-          >
-            Contraseña
-          </button>
-        </div>
-
-        <!-- Single email input (shared) -->
-        <div>
-          <label for="shared_email" class="label">
-            <span class="label-text">Email</span>
-          </label>
-          <input
-            type="email"
-            id="shared_email"
-            name="shared_email"
-            value={@email}
-            readonly={!!@current_scope}
-            class="input input-bordered w-full"
-            autocomplete="email"
-            required
-            phx-mounted={JS.focus()}
-            phx-blur="update_email"
-          />
-        </div>
-
-        <!-- Magic Link Form -->
-        <div :if={@login_method == :magic} class="space-y-4">
-          <div class="text-sm text-base-content/70 bg-base-200 p-3 rounded-lg">
-            <.icon name="hero-envelope" class="size-4 inline" /> Te enviaremos un enlace seguro de inicio de sesión a tu email.
-          </div>
-
-          <.form
-            for={@form}
-            id="login_form_magic"
-            action={~p"/users/log-in"}
-            phx-submit="submit_magic"
-          >
-            <input type="hidden" name="user[email]" value={@email} />
-            <.button class="btn btn-primary w-full">
-              Enviar Enlace <span aria-hidden="true">→</span>
-            </.button>
-          </.form>
-        </div>
-
-        <!-- Password Form -->
-        <div :if={@login_method == :password} class="space-y-4">
-          <.form
-            :let={f}
-            for={@form}
-            id="login_form_password"
-            action={~p"/users/log-in"}
-            phx-submit="submit_password"
-            phx-trigger-action={@trigger_submit}
-          >
-            <input type="hidden" name={f[:email].name} value={@email} />
-
-            <.input
-              field={f[:password]}
-              type="password"
-              label="Contraseña"
-              autocomplete="current-password"
-              required
-            />
-
-            <div class="form-control">
-              <label class="label cursor-pointer justify-start gap-2">
-                <input
-                  type="checkbox"
-                  name={f[:remember_me].name}
-                  value="true"
-                  class="checkbox checkbox-sm"
-                  checked
-                />
-                <span class="label-text">Mantenerme conectado</span>
-              </label>
+    <Layouts.app view_module={__MODULE__} flash={@flash} current_scope={@current_scope}>
+      <div class="min-h-[90vh] flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-sm space-y-12">
+          
+          <!-- Splash View -->
+          <div :if={@view == :splash} class="flex flex-col items-center justify-center space-y-12 animate-fade-in">
+            <!-- Perfectly Centered Logo -->
+            <div class="relative py-12">
+              <.link href={~p"/"} class="block transition-transform hover:scale-105 active:scale-95">
+                <img src={~p"/images/PerFi_logo.png"} class="h-24 w-auto block dark:hidden drop-shadow-2xl animate-scale-in" alt="PerFi Delta" />
+                <img src={~p"/images/perfi_logo_dark.png"} class="h-24 w-auto hidden dark:block drop-shadow-2xl animate-scale-in" alt="PerFi Delta" />
+              </.link>
+              <div class="absolute -inset-8 bg-primary/10 blur-3xl rounded-full -z-10 animate-pulse"></div>
             </div>
 
-            <.button class="btn btn-primary w-full">
-              Iniciar sesión <span aria-hidden="true">→</span>
-            </.button>
-          </.form>
-        </div>
+            <!-- Action Buttons -->
+            <div class="w-full space-y-4 pt-4 stagger-1">
+              <button
+                phx-click="show_login"
+                class="btn btn-primary w-full shadow-lg shadow-primary/20 h-14 text-lg font-bold"
+              >
+                Iniciar sesión
+              </button>
+              
+              <.link
+                navigate={~p"/users/register"}
+                class="btn btn-outline btn-glass w-full border-base-content/10 hover:bg-base-content/5 hover:border-base-content/20 h-14 text-lg"
+              >
+                Registrarme
+              </.link>
+            </div>
+          </div>
 
-        <div class="mt-4 text-center text-sm text-base-content/70">
-          <.link navigate={~p"/users/resend-confirmation"} class="hover:underline">
-            ¿No recibiste el email de confirmación?
-          </.link>
+          <!-- Login Form View -->
+          <div :if={@view == :form} class="space-y-8 animate-fade-in">
+            <!-- Logo Hero Section (Smaller/Shifted up) -->
+            <div class="flex flex-col items-center space-y-4">
+              <div class="relative">
+                <.link href={~p"/"} class="block transition-transform hover:scale-105 active:scale-95">
+                  <img src={~p"/images/PerFi_logo.png"} class="h-16 w-auto block dark:hidden drop-shadow-lg" alt="PerFi Delta" />
+                  <img src={~p"/images/perfi_logo_dark.png"} class="h-16 w-auto hidden dark:block drop-shadow-lg" alt="PerFi Delta" />
+                </.link>
+                <div class="absolute -inset-4 bg-primary/5 blur-2xl rounded-full -z-10 animate-pulse"></div>
+              </div>
+            </div>
+
+            <div class="glass-card p-6 space-y-6 animate-fade-in stagger-1">
+              <div class="text-center space-y-1">
+                <h2 class="text-xl font-bold">Iniciar sesión</h2>
+                <p class="text-sm text-base-content/60">
+                  <%= if @current_scope do %>
+                    Necesitas reautenticarte para realizar acciones sensibles.
+                  <% else %>
+                    Ingresa tus credenciales para continuar
+                  <% end %>
+                </p>
+              </div>
+
+              <!-- Selection Toggle (Pill style) -->
+              <div class="account-toggle account-toggle-2">
+                <div class="account-toggle-pill" style={"transform: translateX(#{if @login_method == :magic, do: "0%", else: "100%"});"}></div>
+                <button
+                  type="button"
+                  phx-click="select_method"
+                  phx-value-method="magic"
+                  class={["account-toggle-option", @login_method == :magic && "active"]}
+                >
+                  Enlace Mágico
+                </button>
+                <button
+                  type="button"
+                  phx-click="select_method"
+                  phx-value-method="password"
+                  class={["account-toggle-option", @login_method == :password && "active"]}
+                >
+                  Contraseña
+                </button>
+              </div>
+
+              <!-- Single email input (shared) -->
+              <div class="space-y-1.5">
+                <label for="shared_email" class="text-sm font-semibold px-1 text-base-content/80">Email</label>
+                <input
+                  type="email"
+                  id="shared_email"
+                  name="shared_email"
+                  value={@email}
+                  readonly={!!@current_scope}
+                  class="input input-glass w-full focus:ring-2 focus:ring-primary/20"
+                  placeholder="tu@email.com"
+                  autocomplete="email"
+                  required
+                  phx-mounted={JS.focus()}
+                  phx-blur="update_email"
+                />
+              </div>
+
+              <!-- Magic Link Form -->
+              <div :if={@login_method == :magic} class="space-y-5 animate-fade-in">
+                <div class="text-sm text-base-content/70 bg-primary/5 border border-primary/10 p-3 rounded-xl flex gap-2 items-start">
+                  <.icon name="hero-envelope" class="size-5 text-primary shrink-0" /> 
+                  <p>Te enviaremos un enlace seguro de inicio de sesión a tu email para que no necesites contraseña.</p>
+                </div>
+
+                <.form
+                  for={@form}
+                  id="login_form_magic"
+                  action={~p"/users/log-in"}
+                  phx-submit="submit_magic"
+                >
+                  <input type="hidden" name="user[email]" value={@email} />
+                  <.button class="btn btn-primary w-full shadow-lg shadow-primary/20 h-12">
+                    Enviar Enlace <span aria-hidden="true" class="ml-1">→</span>
+                  </.button>
+                </.form>
+              </div>
+
+              <!-- Password Form -->
+              <div :if={@login_method == :password} class="space-y-5 animate-fade-in">
+                <.form
+                  :let={f}
+                  for={@form}
+                  id="login_form_password"
+                  action={~p"/users/log-in"}
+                  phx-submit="submit_password"
+                  phx-trigger-action={@trigger_submit}
+                  class="space-y-4"
+                >
+                  <input type="hidden" name={f[:email].name} value={@email} />
+
+                  <div class="space-y-1.5">
+                    <label class="text-sm font-semibold px-1 text-base-content/80">Contraseña</label>
+                    <input
+                      type="password"
+                      name={f[:password].name}
+                      id={f[:password].id}
+                      class="input input-glass w-full focus:ring-2 focus:ring-primary/20"
+                      placeholder="••••••••"
+                      required
+                    />
+                    <.error :for={msg <- f[:password].errors}><%= msg %></.error>
+                  </div>
+
+                  <div class="flex items-center justify-between">
+                    <label class="label cursor-pointer justify-start gap-3 group px-1">
+                      <input
+                        type="checkbox"
+                        name={f[:remember_me].name}
+                        value="true"
+                        class="checkbox checkbox-primary checkbox-sm rounded-md transition-all group-hover:scale-110"
+                        checked
+                      />
+                      <span class="label-text text-sm font-medium transition-colors group-hover:text-primary">Mantenerme conectado</span>
+                    </label>
+                  </div>
+
+                  <.button class="btn btn-primary w-full shadow-lg shadow-primary/20 h-12">
+                    Iniciar sesión <span aria-hidden="true" class="ml-1">→</span>
+                  </.button>
+                </.form>
+              </div>
+            </div>
+
+            <!-- Secondary Actions -->
+            <div class="space-y-4 text-center animate-fade-in stagger-2">
+              <button
+                type="button"
+                phx-click="show_splash"
+                class="text-xs font-semibold text-base-content/40 hover:text-primary transition-colors underline decoration-base-content/20 underline-offset-4"
+              >
+                ← Volver
+              </button>
+
+              <div class="pt-2">
+                <.link navigate={~p"/users/resend-confirmation"} class="text-xs font-semibold text-base-content/40 hover:text-primary transition-colors underline decoration-base-content/20 underline-offset-4">
+                  ¿No recibiste el email de confirmación?
+                </.link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </Layouts.app>
@@ -145,6 +203,7 @@ defmodule PerfiDeltaWeb.UserLive.Login do
 
     {:ok,
      assign(socket,
+       view: :splash,
        form: form,
        trigger_submit: false,
        login_method: :password,
@@ -153,6 +212,9 @@ defmodule PerfiDeltaWeb.UserLive.Login do
   end
 
   @impl true
+  def handle_event("show_login", _, socket), do: {:noreply, assign(socket, :view, :form)}
+  def handle_event("show_splash", _, socket), do: {:noreply, assign(socket, :view, :splash)}
+
   def handle_event("select_method", %{"method" => method}, socket) do
     login_method = String.to_existing_atom(method)
     {:noreply, assign(socket, :login_method, login_method)}

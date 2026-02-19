@@ -804,16 +804,13 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
 
   # Helpers
 
-  defp step_class(index, current) when index < current, do: "completed"
-  defp step_class(index, current) when index == current, do: "active"
-  defp step_class(_, _), do: ""
-
-  defp step_label(:rates), do: "Cotización"
+  defp step_label(:rates), do: "Tasas"
   defp step_label(:assets), do: "Activos"
   defp step_label(:liabilities), do: "Pasivos"
   defp step_label(:flows), do: "Flujos"
   defp step_label(:income), do: "Ingresos"
-  defp step_label(:result), do: "Resultado"
+  defp step_label(:result), do: "Resultados"
+  defp step_label(step), do: Phoenix.Naming.humanize(step)
 
   defp filter_by_types(accounts, types) do
     Enum.filter(accounts, &(&1.type in types))
@@ -863,13 +860,6 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
 
   # format_smart_currency imported from NumberHelpers
 
-  defp step_label(:rates), do: "Tasas"
-  defp step_label(:assets), do: "Activos"
-  defp step_label(:liabilities), do: "Pasivos"
-  defp step_label(:flows), do: "Flujos"
-  defp step_label(:income), do: "Ingresos"
-  defp step_label(:result), do: "Resultados"
-  defp step_label(step), do: Phoenix.Naming.humanize(step)
 
   defp format_income_string(val) do
     if val == "0" || val == "0,00" || val == 0, do: "", else: val

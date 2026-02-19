@@ -63,25 +63,14 @@ defmodule PerfiDeltaWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/2 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=dark]_&]:left-1/2 transition-[left]" />
-
-      <button
-        class="flex p-2 cursor-pointer w-1/2 justify-center"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-      >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/2 justify-center"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-      >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-    </div>
+    <button
+      class="group flex items-center justify-center size-9 rounded-full border-2 border-base-300 bg-base-100/50 backdrop-blur-sm cursor-pointer touch-target active:scale-90 transition-all hover:bg-base-200"
+      phx-click={JS.dispatch("phx:toggle-theme")}
+      aria-label="Toggle theme"
+    >
+      <.icon name="hero-sun" class="size-5 block dark:hidden text-amber-500 group-hover:scale-110 transition-transform" />
+      <.icon name="hero-moon" class="size-5 hidden dark:block text-indigo-400 group-hover:scale-110 transition-transform" />
+    </button>
     """
   end
 end

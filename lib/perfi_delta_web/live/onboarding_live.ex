@@ -1428,7 +1428,4 @@ defmodule PerfiDeltaWeb.OnboardingLive do
   defp current_step_type(5), do: :liability
   defp current_step_type(_), do: nil
 
-  defp account_btn_class(:liquid), do: "btn-primary"
-  defp account_btn_class(:investment), do: "btn-accent"
-  defp account_btn_class(:liability), do: "btn-error"
 end

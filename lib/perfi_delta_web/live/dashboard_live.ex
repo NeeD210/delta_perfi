@@ -254,6 +254,11 @@ defmodule PerfiDeltaWeb.DashboardLive do
           <% end %>
         </div>
       <% end %>
+
+      <!-- Sprite Footer -->
+      <div class="mt-12 pb-8 flex justify-center opacity-20 invert dark:invert-0">
+        <img src={~p"/images/PFI_sprite.png"} class="h-6 w-auto" alt="Sprite" />
+      </div>
     </div>
     """
   end
