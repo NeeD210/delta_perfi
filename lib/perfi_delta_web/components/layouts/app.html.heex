@@ -12,7 +12,7 @@
 
 <header :if={!is_auth_page} class="sticky top-0 z-40 header-glass">
   <div class="flex items-center justify-between px-4 py-3 max-w-lg mx-auto">
-    <.link href={~p"/"} class="flex items-center gap-1">
+    <.link href={~p"/dashboard"} class="flex items-center gap-1">
       <img src={~p"/images/PerFi_logo.png"} class="h-7 w-auto block dark:hidden" alt="PerFi Delta" />
       <img src={~p"/images/perfi_logo_dark.png"} class="h-7 w-auto hidden dark:block" alt="PerFi Delta" />
     </.link>
@@ -57,7 +57,7 @@
         }); 
       "}></div>
       
-      <.link href={~p"/"} class={"nav-item #{if is_home, do: "nav-item-active"}"}>
+      <.link href={~p"/dashboard"} class={"nav-item #{if is_home, do: "nav-item-active"}"}>
         <span class="hero-home nav-icon"></span>
         <span class="nav-label">Inicio</span>
       </.link>

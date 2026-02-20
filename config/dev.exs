@@ -4,13 +4,13 @@ config :perfi_delta, PerfiDeltaWeb.Endpoint, server: true
 
 # Configure your database
 config :perfi_delta, PerfiDelta.Repo,
-  username: "postgres",
-  password: System.get_env("DB_PASSWORD") || "postgres",
-  hostname: System.get_env("DB_HOSTNAME") || "localhost",
-  database: "perfi_delta_dev",
+  url: System.get_env("DATABASE_URL") || "postgres://postgres:postgres@localhost/perfi_delta_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+  pool_size: 10,
+  ssl: System.get_env("DATABASE_URL") != nil,
+  ssl_opts: [verify: :verify_none],
+  prepare: :unnamed
 
 # For development, we disable any cache and enable
 # debugging and code reloading.

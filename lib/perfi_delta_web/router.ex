@@ -21,7 +21,12 @@ defmodule PerfiDeltaWeb.Router do
     pipe_through :browser
 
     # Landing page para usuarios no autenticados
-    get "/welcome", PageController, :home
+    get "/", PageController, :redirect_to_landing
+    get "/landing", PageController, :home
+  end
+
+  scope "/", PerfiDeltaWeb do
+    pipe_through :api
     get "/health", HealthCheckController, :index
   end
 
@@ -56,7 +61,7 @@ defmodule PerfiDeltaWeb.Router do
       on_mount: [{PerfiDeltaWeb.UserAuth, :require_authenticated}],
       layout: {PerfiDeltaWeb.Layouts, :app} do
       # App principal
-      live "/", DashboardLive, :index
+      live "/dashboard", DashboardLive, :index
       live "/cuentas", AccountsLive, :index
       live "/cierre", ClosureWizardLive, :index
       live "/historial", HistoryLive, :index
@@ -80,7 +85,7 @@ defmodule PerfiDeltaWeb.Router do
     pipe_through [:browser]
 
     live_session :current_user,
-      on_mount: [{PerfiDeltaWeb.UserAuth, :mount_current_scope}] do
+      on_mount: [{PerfiDeltaWeb.UserAuth, :redirect_if_user_is_authenticated}] do
       live "/users/register", UserLive.Registration, :new
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new

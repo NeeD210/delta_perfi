@@ -213,22 +213,22 @@ defmodule PerfiDeltaWeb.DashboardLive do
             <div class="icon-badge icon-badge-liquid mx-auto mb-2">
               <span class="hero-banknotes"></span>
             </div>
-            <p class="text-lg font-mono-numbers font-bold"><%= format_compact(sum_by_type(@accounts, :liquid), @display_currency, @dolar_rate) %></p>
-            <p class="text-xs opacity-60">Líquidas</p>
+            <p class="text-lg font-mono-numbers font-bold truncate"><%= format_compact(sum_by_type(@accounts, :liquid), @display_currency, @dolar_rate) %></p>
+            <p class="text-[10px] opacity-60 uppercase tracking-wider font-bold truncate">Líquidas</p>
           </div>
           <div class="glass-card p-4 text-center animate-fade-in stagger-2">
             <div class="icon-badge icon-badge-investment mx-auto mb-2">
               <span class="hero-chart-bar"></span>
             </div>
-            <p class="text-lg font-mono-numbers font-bold"><%= format_compact(sum_by_type(@accounts, :investment), @display_currency, @dolar_rate) %></p>
-            <p class="text-xs opacity-60">Inversiones</p>
+            <p class="text-lg font-mono-numbers font-bold truncate"><%= format_compact(sum_by_type(@accounts, :investment), @display_currency, @dolar_rate) %></p>
+            <p class="text-[10px] opacity-60 uppercase tracking-wider font-bold truncate">Inversiones</p>
           </div>
           <div class="glass-card p-4 text-center animate-fade-in stagger-3">
             <div class="icon-badge icon-badge-liability mx-auto mb-2">
               <span class="hero-credit-card"></span>
             </div>
-            <p class="text-lg font-mono-numbers font-bold text-debt"><%= format_compact(sum_by_type(@accounts, :liability), @display_currency, @dolar_rate) %></p>
-            <p class="text-xs opacity-60">Deudas</p>
+            <p class="text-lg font-mono-numbers font-bold text-debt truncate"><%= format_compact(sum_by_type(@accounts, :liability), @display_currency, @dolar_rate) %></p>
+            <p class="text-[10px] opacity-60 uppercase tracking-wider font-bold truncate">Deudas</p>
           </div>
         </div>
 

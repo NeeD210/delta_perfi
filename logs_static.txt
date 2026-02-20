@@ -1,0 +1,100 @@
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Preparing to run: `litefs mount -- sh -c /app/bin/perfi_delta eval PerfiDelta.Release.migrate && /app/bin/perfi_delta start` as root
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m [fly api proxy] listening at /.fly/api
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]config file read from /etc/litefs.yml
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]LiteFS v0.5.14, commit=a51e72d84eeb96ad210ef407230161192120ab96
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="host environment detected" type=fly.io
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="no backup client configured, skipping"
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="Using static primary: primary=true hostname= advertise-url="
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="using existing cluster id: \"LFSCBB96EC7B8DA97EF3\""
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="03B46A4CF7D0D0DC: primary lease acquired, advertising as "
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="set cluster id on \"static\" lease \"LFSCBB96EC7B8DA97EF3\""
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="LiteFS mounted to: /data"
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="http server listening on: http://localhost:20202"
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="waiting to connect to cluster"
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="connected to cluster, ready"
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="node is a candidate, automatically promoting to primary"
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="node is already primary, skipping promotion"
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="proxy server listening on: http://localhost:8080"
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="starting background subprocess: sh [-c /app/bin/perfi_delta eval PerfiDelta.Release.migrate]"
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]waiting for signal or subprocess to exit
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]Usage: perfi_delta COMMAND [ARGS]
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]The known commands are:
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    start          Starts the system
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    start_iex      Starts the system with IEx attached
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    daemon         Starts the system as a daemon
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    daemon_iex     Starts the system as a daemon with IEx attached
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    eval "EXPR"    Executes the given expression on a new, non-booted system
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    rpc "EXPR"     Executes the given expression remotely on the running system
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    remote         Connects to the running system via a remote shell
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    restart        Restarts the running system via a remote command
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    stop           Stops the running system via a remote command
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    pid            Prints the operating system PID of the running system via a remote command
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    version        Prints the release name and version to be booted
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]subprocess exited successfully, litefs shutting down
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][33m WARN[0m error serving API request: connection closed before message completed
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]litefs shut down complete
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="03B46A4CF7D0D0DC: exiting primary, destroying lease"
+[2m2026-02-19T22:51:31Z[0m runner[2863022ce7d338] [32mgru[0m [[34minfo[0m]Machine started in 1.131s
+[2m2026-02-19T22:51:31Z[0m proxy[2863022ce7d338] [32mgru[0m [[34minfo[0m]machine started in 1.274518674s
+[2m2026-02-19T22:51:31Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]2026/02/19 22:51:31 INFO SSH listening listen_address=[fdaa:48:1c4e:a7b:5d4:6930:728b:2]:22
+[2m2026-02-19T22:51:32Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Main child exited normally with code: 0
+[2m2026-02-19T22:51:32Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Starting clean up.
+[2m2026-02-19T22:51:32Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Umounting /dev/vdc from /var/lib/litefs
+[2m2026-02-19T22:51:32Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][    1.948159] reboot: Restarting system
+[2m2026-02-19T22:51:36Z[0m runner[2863022ce7d338] [32mgru[0m [[34minfo[0m]machine exited with exit code 0, not restarting
+[2m2026-02-19T22:51:36Z[0m proxy[2863022ce7d338] [32mgru[0m [[34minfo[0m]waiting for machine to be reachable on 0.0.0.0:8080 (waited 5.171029791s so far)
+[2merror.message=[0m"failed to connect to machine: gave up after 15 attempts (in 8.17581014s)" [2m2026-02-19T22:51:39Z[0m proxy[2863022ce7d338] [32mgru[0m [[31merror[0m]
+[2m2026-02-19T22:52:11Z[0m proxy[2863022ce7d338] [32mgru[0m [[34minfo[0m]Starting machine
+[2m2026-02-19T22:52:11Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]2026-02-19T22:52:11.314947527 [01KHW0KBAX3JV771S8ED66H2S6:main] Running Firecracker v1.12.1
+[2m2026-02-19T22:52:11Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]2026-02-19T22:52:11.315087902 [01KHW0KBAX3JV771S8ED66H2S6:main] Listening on API socket ("/fc.sock").
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Starting init (commit: 350f2667)...
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Checking filesystem on /var/lib/litefs
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]/dev/vdc: clean, 13/64512 files, 8787/258048 blocks
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Mounting /dev/vdc at /var/lib/litefs w/ uid: 0, gid: 0 and chmod 0755
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Resized /var/lib/litefs to 1056964608 bytes
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Preparing to run: `litefs mount -- sh -c /app/bin/perfi_delta eval PerfiDelta.Release.migrate && /app/bin/perfi_delta start` as root
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m [fly api proxy] listening at /.fly/api
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]config file read from /etc/litefs.yml
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]LiteFS v0.5.14, commit=a51e72d84eeb96ad210ef407230161192120ab96
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="host environment detected" type=fly.io
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="no backup client configured, skipping"
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="Using static primary: primary=true hostname= advertise-url="
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="using existing cluster id: \"LFSCBB96EC7B8DA97EF3\""
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="D03980E6A34C584A: primary lease acquired, advertising as "
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="set cluster id on \"static\" lease \"LFSCBB96EC7B8DA97EF3\""
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="LiteFS mounted to: /data"
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="http server listening on: http://localhost:20202"
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="waiting to connect to cluster"
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="connected to cluster, ready"
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="node is a candidate, automatically promoting to primary"
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="node is already primary, skipping promotion"
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="proxy server listening on: http://localhost:8080"
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="starting background subprocess: sh [-c /app/bin/perfi_delta eval PerfiDelta.Release.migrate]"
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]waiting for signal or subprocess to exit
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]Usage: perfi_delta COMMAND [ARGS]
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]The known commands are:
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    start          Starts the system
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    start_iex      Starts the system with IEx attached
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    daemon         Starts the system as a daemon
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    daemon_iex     Starts the system as a daemon with IEx attached
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    eval "EXPR"    Executes the given expression on a new, non-booted system
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    rpc "EXPR"     Executes the given expression remotely on the running system
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    remote         Connects to the running system via a remote shell
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    restart        Restarts the running system via a remote command
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    stop           Stops the running system via a remote command
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    pid            Prints the operating system PID of the running system via a remote command
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]    version        Prints the release name and version to be booted
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]subprocess exited successfully, litefs shutting down
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][33m WARN[0m error serving API request: connection closed before message completed
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]level=INFO msg="D03980E6A34C584A: exiting primary, destroying lease"
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]litefs shut down complete
+[2m2026-02-19T22:52:12Z[0m runner[2863022ce7d338] [32mgru[0m [[34minfo[0m]Machine started in 1.063s
+[2m2026-02-19T22:52:12Z[0m proxy[2863022ce7d338] [32mgru[0m [[34minfo[0m]machine started in 1.191901781s
+[2m2026-02-19T22:52:12Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m]2026/02/19 22:52:12 INFO SSH listening listen_address=[fdaa:48:1c4e:a7b:5d4:6930:728b:2]:22
+[2m2026-02-19T22:52:13Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Main child exited normally with code: 0
+[2m2026-02-19T22:52:13Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Starting clean up.
+[2m2026-02-19T22:52:13Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][32m INFO[0m Umounting /dev/vdc from /var/lib/litefs
+[2m2026-02-19T22:52:13Z[0m app[2863022ce7d338] [32mgru[0m [[34minfo[0m][    1.886351] reboot: Restarting system
+[2m2026-02-19T22:52:17Z[0m proxy[2863022ce7d338] [32mgru[0m [[34minfo[0m]waiting for machine to be reachable on 0.0.0.0:8080 (waited 5.03112667s so far)
+[2m2026-02-19T22:52:17Z[0m runner[2863022ce7d338] [32mgru[0m [[34minfo[0m]machine exited with exit code 0, not restarting
+[2merror.message=[0m"failed to connect to machine: gave up after 15 attempts (in 7.944036862s)" [2m2026-02-19T22:52:20Z[0m proxy[2863022ce7d338] [32mgru[0m [[31merror[0m]

@@ -106,8 +106,8 @@ Para recuperar contraseñas y bienvenida.
 
 #### 6. Landing Page (Integrada en Phoenix)
 La "Home" de la web para no usuarios.
-*   **Estado:** 🔴 0% completado.
-*   **Nota:** No hay `PageController` ni landing page. La ruta raíz redirige al login/dashboard. Es una feature completamente nueva.
+*   **Estado:** ✅ 100% completado.
+*   **Nota:** Landing page implementada con Hero section, bento grid, ritual mensual y diseño mobile-first.
 
 > [!NOTE]
 > **Instrucción Técnica para Cursor:**
@@ -149,7 +149,7 @@ No programes esto en la app todavía. Usa herramientas No-Code.
 | 3 | Runway | 100% | ✅ Completado |
 | 4 | Email (Resend) | 80% | ✅ Funcionando (solo para mi mail personal) |
 | 5 | Deploy (Fly.io) | 100% | ✅ En Producción |
-| 6 | Landing Page | 0% | 🔴 Sin empezar |
+| 6 | Landing Page | 100% | ✅ Completado |
 | 7 | Tally Form | 0% | 🔴 Externo |
 | 8 | Redes Sociales | 0% | 🔴 Externo |
 

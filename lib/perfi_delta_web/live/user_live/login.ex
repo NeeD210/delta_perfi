@@ -40,7 +40,7 @@ defmodule PerfiDeltaWeb.UserLive.Login do
           </div>
 
           <!-- Login Form View -->
-          <div :if={@view == :form} class="space-y-8 animate-fade-in">
+          <div :if={@view == :form} class="space-y-8">
             <!-- Logo Hero Section (Smaller/Shifted up) -->
             <div class="flex flex-col items-center space-y-4">
               <div class="relative">
@@ -86,22 +86,23 @@ defmodule PerfiDeltaWeb.UserLive.Login do
               </div>
 
               <!-- Single email input (shared) -->
-              <div class="space-y-1.5">
-                <label for="shared_email" class="text-sm font-semibold px-1 text-base-content/80">Email</label>
-                <input
-                  type="email"
-                  id="shared_email"
-                  name="shared_email"
-                  value={@email}
-                  readonly={!!@current_scope}
-                  class="input input-glass w-full focus:ring-2 focus:ring-primary/20"
-                  placeholder="tu@email.com"
-                  autocomplete="email"
-                  required
-                  phx-mounted={JS.focus()}
-                  phx-blur="update_email"
-                />
-              </div>
+              <.form for={%{}} as={:email_form} phx-change="update_email" phx-submit="update_email">
+                <div class="space-y-1.5">
+                  <label for="shared_email" class="text-sm font-semibold px-1 text-base-content/80">Email</label>
+                  <input
+                    type="email"
+                    id="shared_email"
+                    name="email"
+                    value={@email}
+
+                    class="input input-glass w-full focus:ring-2 focus:ring-primary/20"
+                    placeholder="tu@email.com"
+                    autocomplete="email"
+                    required
+                    phx-debounce="blur"
+                  />
+                </div>
+              </.form>
 
               <!-- Magic Link Form -->
               <div :if={@login_method == :magic} class="space-y-5 animate-fade-in">
@@ -193,7 +194,7 @@ defmodule PerfiDeltaWeb.UserLive.Login do
   end
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     email =
       Phoenix.Flash.get(socket.assigns.flash, :email) ||
         get_in(socket.assigns, [:current_scope, Access.key(:user), Access.key(:email)]) ||
@@ -201,9 +202,15 @@ defmodule PerfiDeltaWeb.UserLive.Login do
 
     form = to_form(%{"email" => email}, as: "user")
 
+    view = 
+      case params["view"] do
+        "splash" -> :splash
+        _ -> :form
+      end
+
     {:ok,
      assign(socket,
-       view: :splash,
+       view: view,
        form: form,
        trigger_submit: false,
        login_method: :password,
@@ -220,7 +227,15 @@ defmodule PerfiDeltaWeb.UserLive.Login do
     {:noreply, assign(socket, :login_method, login_method)}
   end
 
-  def handle_event("update_email", %{"value" => email}, socket) do
+  def handle_event("update_email", params, socket) do
+    email =
+      case params do
+        %{"email_form" => %{"email" => email}} -> email
+        %{"email" => email} -> email
+        %{"value" => email} -> email
+        _ -> socket.assigns.email
+      end
+
     {:noreply, assign(socket, :email, email)}
   end
 

@@ -10,6 +10,7 @@ defmodule PerfiDelta.Release do
     # Explicitly start dependencies
     Application.ensure_all_started(:ssl)
     Application.ensure_all_started(:postgrex)
+    Application.ensure_all_started(:castore)
     Application.ensure_all_started(:ecto_sql)
 
     load_app()

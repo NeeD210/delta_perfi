@@ -90,38 +90,51 @@ defmodule PerfiDeltaWeb.UserLive.Registration do
       |> assign_form(changeset)
       |> assign(show_resend_link: false)
 
-    {:ok, socket, temporary_assigns: [form: nil]}
+    {:ok, socket}
   end
 
   @impl true
   def handle_event("save", %{"user" => user_params}, socket) do
-    case Accounts.register_user(user_params) do
-      {:ok, user} ->
-        {:ok, _} =
-          Accounts.deliver_login_instructions(
-            user,
-            &url(~p"/users/log-in/#{&1}")
-          )
+    try do
+      case Accounts.register_user(user_params) do
+        {:ok, user} ->
+          {:ok, _} =
+            Accounts.deliver_login_instructions(
+              user,
+              &url(~p"/users/log-in/#{&1}")
+            )
+
+          {:noreply,
+           socket
+           |> put_flash(
+             :info,
+             "Se envió un email a #{user.email}, accede para confirmar tu cuenta."
+           )
+           |> push_navigate(to: ~p"/users/log-in")}
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          # Check if error is duplicate email
+          show_resend =
+            Enum.any?(changeset.errors, fn {field, {msg, _}} ->
+              field == :email and String.contains?(msg, "ya")
+            end)
+
+          {:noreply,
+           socket
+           |> assign_form(changeset)
+           |> assign(show_resend_link: show_resend)}
+      end
+    rescue
+      e ->
+        require Logger
+        Logger.error("Error crítico en registro de usuario: #{inspect(e)}")
+        Logger.error("Backtrace: #{inspect(__STACKTRACE__)}")
 
         {:noreply,
          socket
-         |> put_flash(
-           :info,
-           "Se envió un email a #{user.email}, accede para confirmar tu cuenta."
-         )
-         |> push_navigate(to: ~p"/users/log-in")}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        # Check if error is duplicate email
-        show_resend = 
-          Enum.any?(changeset.errors, fn {field, {msg, _}} ->
-            field == :email and String.contains?(msg, "ya")
-          end)
-        
-        {:noreply,
-         socket
-         |> assign_form(changeset)
-         |> assign(show_resend_link: show_resend)}
+         |> put_flash(:error, "Ocurrió un error inesperado al crear la cuenta. Intente nuevamente.")
+         |> assign(show_resend_link: false)
+         |> assign_form(Accounts.change_user_email(%User{}, user_params, validate_unique: false))}
     end
   end
 

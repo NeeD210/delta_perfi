@@ -999,18 +999,24 @@ defmodule PerfiDeltaWeb.OnboardingLive do
       </div>
 
       <div class="grid grid-cols-3 gap-3 mb-6">
-        <div class="card-gradient-liquid p-4 text-center">
-          <p class="text-lg font-mono-numbers font-bold"><%= format_compact_usd(sum_by_type(@balances, @accounts, :liquid)) %></p>
-          <p class="text-xs text-base-content/60">Líquidas</p>
-        </div>
-        <div class="card-gradient-investment p-4 text-center">
-          <p class="text-lg font-mono-numbers font-bold"><%= format_compact_usd(sum_by_type(@balances, @accounts, :investment)) %></p>
-          <p class="text-xs text-base-content/60">Inversiones</p>
-        </div>
-        <div class="card-gradient-liability p-4 text-center">
-          <p class="text-lg font-mono-numbers font-bold text-error"><%= format_compact_usd(sum_by_type(@balances, @accounts, :liability)) %></p>
-          <p class="text-xs text-base-content/60">Deudas</p>
-        </div>
+        <%= for {type, label, class} <- [
+          {:liquid, "Líquidas", "card-gradient-liquid"},
+          {:investment, "Inversiones", "card-gradient-investment"},
+          {:liability, "Deudas", "card-gradient-liability"}
+        ] do %>
+          <% parts = format_amount_parts(sum_by_type(@balances, @accounts, type)) %>
+          <div class={[class, "p-4 flex flex-col items-center justify-center min-h-[110px] rounded-2xl shadow-sm border border-base-content/5"]}>
+            <span class="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-1">US$</span>
+            <span class={[
+              "font-mono-numbers font-bold leading-none mb-1",
+              if(String.length(parts.amount) > 6, do: "text-lg", else: if(String.length(parts.amount) > 4, do: "text-xl", else: "text-2xl")),
+              if(parts.is_negative, do: "text-error")
+            ]}>
+              <%= parts.amount %>
+            </span>
+            <span class="text-[9px] opacity-60 uppercase tracking-widest font-bold text-center"><%= label %></span>
+          </div>
+        <% end %>
       </div>
 
       <p class="text-sm text-base-content/50">
@@ -1401,6 +1407,35 @@ defmodule PerfiDeltaWeb.OnboardingLive do
       end
 
     "US$ #{prefix}#{formatted}"
+  end
+
+  defp format_amount_parts(decimal_usd) do
+    abs_value = Decimal.abs(decimal_usd)
+    is_negative = Decimal.negative?(decimal_usd)
+
+    formatted =
+      cond do
+        Decimal.compare(abs_value, Decimal.new(1_000_000)) != :lt ->
+          abs_value
+          |> Decimal.div(Decimal.new(1_000_000))
+          |> Decimal.round(1)
+          |> Decimal.to_string()
+          |> Kernel.<>("M")
+
+        Decimal.compare(abs_value, Decimal.new(1_000)) != :lt ->
+          abs_value
+          |> Decimal.div(Decimal.new(1_000))
+          |> Decimal.round(1)
+          |> Decimal.to_string()
+          |> Kernel.<>("K")
+
+        true ->
+          abs_value
+          |> Decimal.round(0)
+          |> Decimal.to_string()
+      end
+
+    %{amount: formatted, is_negative: is_negative}
   end
 
 

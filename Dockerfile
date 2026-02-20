@@ -46,6 +46,7 @@ COPY config/runtime.exs config/
 
 # Copy release overlays
 COPY rel rel
+RUN chmod +x rel/overlays/bin/server && sed -i 's/\r$//' rel/overlays/bin/server
 
 # Build the release
 RUN mix release
@@ -56,8 +57,9 @@ RUN mix release
 FROM debian:bookworm-slim
 
 RUN apt-get update -y && \
-    apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates \
+    apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates curl \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
+
 
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
@@ -67,20 +69,18 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
 WORKDIR "/app"
-RUN chown nobody /app
 
 # Set runner ENV
 ENV MIX_ENV="prod"
 ENV PHX_SERVER="true"
 
 # Only copy the final release from the build stage
-COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/perfi_delta ./
-
-USER nobody
+COPY --from=builder /app/_build/${MIX_ENV}/rel/perfi_delta ./
 
 # If using an environment that doesn't automatically reap zombie processes,
 # it is advised to add an init process such as tini via `apt-get install`
 # above and adding an pointentry. See https://github.com/krallin/tini.
 # ENTRYPOINT ["/tini", "--"]
 
-CMD ["/app/bin/perfi_delta", "start"]
+# CMD is passed as arguments to the entrypoint or run directly
+CMD ["/app/bin/server"]
