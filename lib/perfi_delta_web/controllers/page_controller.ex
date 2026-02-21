@@ -2,7 +2,7 @@ defmodule PerfiDeltaWeb.PageController do
   use PerfiDeltaWeb, :controller
 
   def home(conn, _params) do
-    render(conn, :home)
+    render(conn, :home, theme: "dark")
   end
 
   def redirect_to_landing(conn, _params) do

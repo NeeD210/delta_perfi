@@ -243,6 +243,7 @@ Los emails se enviarán de verdad (cuentan en tu cuota).
 - [Swoosh Resend Adapter](https://hexdocs.pm/swoosh/Swoosh.Adapters.Resend.html)
 - [Resend Dashboard](https://resend.com/home)
 
+
 ---
 
 ## 💡 Mejoras Futuras

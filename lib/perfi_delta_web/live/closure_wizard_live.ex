@@ -220,7 +220,7 @@ defmodule PerfiDeltaWeb.ClosureWizardLive do
 
     ars_in_usd =
       if Decimal.positive?(blue) do
-        Decimal.div(ars, blue) |> Decimal.round(2)
+        Decimal.div(ars, blue) |> Decimal.round(0)
       else
         Decimal.new(0)
       end

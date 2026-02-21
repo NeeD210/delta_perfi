@@ -73,7 +73,7 @@ defmodule PerfiDeltaWeb.WizardComponents do
     assigns = assign(assigns, :total, total)
 
     ~H"""
-    <div class="flex justify-between items-center mb-0 flex-shrink-0">
+    <div class="flex justify-between items-center mb-8 flex-shrink-0">
       <%= for {step, index} <- Enum.with_index(@steps_list) do %>
         <div class={"flex items-center relative " <> if(index < @total - 1, do: "flex-1", else: "")}>
           <!-- Bubble/Indicator -->

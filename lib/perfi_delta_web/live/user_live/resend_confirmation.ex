@@ -60,7 +60,7 @@ defmodule PerfiDeltaWeb.UserLive.ResendConfirmation do
   @impl true
   def mount(_params, _session, socket) do
     form = to_form(%{"email" => ""}, as: "user")
-    {:ok, assign(socket, form: form)}
+    {:ok, assign(socket, form: form, theme: "dark")}
   end
 
   @impl true

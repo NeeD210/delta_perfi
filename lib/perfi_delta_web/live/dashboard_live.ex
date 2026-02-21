@@ -69,7 +69,7 @@ defmodule PerfiDeltaWeb.DashboardLive do
       <div class="flex items-center justify-between mb-8 animate-fade-in">
         <div>
           <p class="text-sm opacity-60 mb-1"><%= today_date() %></p>
-          <h1 class="text-3xl font-extrabold text-gradient-hero"><%= today_greeting() %></h1>
+          <h1 class="text-2xl font-extrabold text-gradient-hero"><%= today_greeting() %></h1>
         </div>
         <!-- Currency Toggle Pill -->
         <div class="currency-toggle">
@@ -98,7 +98,7 @@ defmodule PerfiDeltaWeb.DashboardLive do
             <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
               <span class="hero-sparkles text-4xl text-indigo-600"></span>
             </div>
-            <h2 class="text-2xl font-bold mb-2 text-gradient-hero">Bienvenido a PerFi Delta</h2>
+            <h2 class="text-2xl font-bold mb-2 text-gradient-hero">Bienvenido</h2>
             <p class="text-gray-600 mb-6">
               Vamos a configurar tu mapa financiero.
               Solo necesitas agregar tus cuentas y deudas actuales.

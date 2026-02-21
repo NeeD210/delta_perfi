@@ -170,22 +170,20 @@ defmodule PerfiDeltaWeb.UserLive.Login do
               </div>
             </div>
 
-            <!-- Secondary Actions -->
-            <div class="space-y-4 text-center animate-fade-in stagger-2">
-              <button
-                type="button"
-                phx-click="show_splash"
-                class="text-xs font-semibold text-base-content/40 hover:text-primary transition-colors underline decoration-base-content/20 underline-offset-4"
-              >
-                ← Volver
-              </button>
+              <div class="flex flex-col items-center gap-4">
+                <p class="text-xs font-semibold text-base-content/40">
+                  ¿No tienes cuenta?
+                  <.link navigate={~p"/users/register"} class="text-primary hover:underline underline-offset-4 ml-1">
+                    Regístrate
+                  </.link>
+                </p>
+              </div>
 
               <div class="pt-2">
                 <.link navigate={~p"/users/resend-confirmation"} class="text-xs font-semibold text-base-content/40 hover:text-primary transition-colors underline decoration-base-content/20 underline-offset-4">
                   ¿No recibiste el email de confirmación?
                 </.link>
               </div>
-            </div>
           </div>
         </div>
       </div>
@@ -208,14 +206,15 @@ defmodule PerfiDeltaWeb.UserLive.Login do
         _ -> :form
       end
 
-    {:ok,
-     assign(socket,
-       view: view,
-       form: form,
-       trigger_submit: false,
-       login_method: :password,
-       email: email
-     )}
+     {:ok,
+      assign(socket,
+        view: view,
+        form: form,
+        trigger_submit: false,
+        login_method: :password,
+        email: email,
+        theme: "dark"
+      )}
   end
 
   @impl true

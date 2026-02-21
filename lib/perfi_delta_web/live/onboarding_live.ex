@@ -36,9 +36,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
       |> assign(:form_type, nil)
       |> assign(:form, to_form(Finance.change_account(%FinancialAccount{})))
       |> assign(:dolar_blue, nil)
-      |> assign(:loading, false)
-      |> assign(:preferences, saved_preferences)
-      |> assign(:income, saved_income)
+      |> assign(preferences: saved_preferences, income: saved_income, theme: "dark")
 
     # Fetch dolar rate
     send(self(), :fetch_rate)
@@ -441,26 +439,6 @@ defmodule PerfiDeltaWeb.OnboardingLive do
 
   # --- Internal Helpers ---
 
-  defp maybe_auto_show_form(socket, step) when step in [3, 5] do
-    type = current_step_type(step)
-    accounts = socket.assigns.accounts
-    
-    if Enum.empty?(Enum.filter(accounts, & &1.type == type)) do
-      initial_currencies =
-        case type do
-          :liquid -> ["ARS"]
-          :liability -> ["ARS", "USD"]
-          _ -> []
-        end
-      form_data = %{"name" => nil, "currencies" => initial_currencies, "original_name" => nil}
-      socket
-      |> assign(:show_form, true)
-      |> assign(:form_type, type)
-      |> assign(:form, to_form(form_data))
-    else
-      socket |> assign(:show_form, false)
-    end
-  end
   defp maybe_auto_show_form(socket, _step), do: assign(socket, :show_form, false)
 
   # --- Persistence Helpers ---
@@ -541,14 +519,6 @@ defmodule PerfiDeltaWeb.OnboardingLive do
 
   # parse_currency imported from NumberHelpers
 
-  defp step_name(1), do: "Bienvenida"
-  defp step_name(2), do: "Preferencias"
-  defp step_name(3), do: "Cuentas"
-  defp step_name(4), do: "Inversiones"
-  defp step_name(5), do: "Deudas"
-  defp step_name(6), do: "Saldos"
-  defp step_name(7), do: "Ingresos"
-  defp step_name(8), do: "Resumen"
 
   import PerfiDeltaWeb.WizardComponents
 
@@ -558,7 +528,6 @@ defmodule PerfiDeltaWeb.OnboardingLive do
     <.wizard_layout
       steps={8}
       current_step_index={@step - 1}
-      step_label_fn={&step_name/1}
       can_go_back={@step > 1}
       can_go_next={true}
       next_disabled={
@@ -640,7 +609,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
       <div class="w-24 h-24 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
         <span class="hero-map text-5xl text-indigo-600"></span>
       </div>
-      <h1 class="text-4xl font-extrabold mb-4 text-gradient-hero">Bienvenido a PerFi Delta</h1>
+      <h1 class="text-4xl font-extrabold mb-4 text-gradient-hero">Bienvenido</h1>
       <p class="text-gray-600 mb-6 text-lg">
         Vamos a configurar todas tus cuentas, inversiones y deudas.
       </p>
@@ -666,10 +635,14 @@ defmodule PerfiDeltaWeb.OnboardingLive do
         <button
           phx-click="show_form"
           phx-value-type={@type}
-          class="w-full p-4 rounded-xl border-2 border-dashed border-base-300 hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-3 group"
+          class="w-full p-6 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 hover:border-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-4 group"
         >
-          <span class={"#{account_icon(@type)} text-xl text-base-content/50 group-hover:text-primary transition-colors"}></span>
-          <span class="font-bold text-base-content/70 group-hover:text-primary transition-colors">Agregar <%= account_type_label(@type) %></span>
+          <div class="w-10 h-10 rounded-full bg-primary text-primary-content flex items-center justify-center shadow-lg shadow-primary/20 transition-transform group-hover:scale-110">
+            <span class="hero-plus text-xl"></span>
+          </div>
+          <span class="font-bold text-lg text-primary group-hover:underline decoration-2 underline-offset-4">
+            Agregar <%= if @type == :liability, do: "mi primera deuda", else: "mi primera cuenta" %>
+          </span>
         </button>
       </div>
 
@@ -837,7 +810,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
                     <!-- USD Conversion Indicator -->
                     <%= if account.currency != "USD" and Map.has_key?(@balances, account.id) do %>
                       <div class="text-right mt-1 pr-2 text-xs opacity-40 font-mono-numbers">
-                        ≈ US$ <%= @balances[account.id].amount_usd %>
+                        ≈ US$ <%= Decimal.round(@balances[account.id].amount_usd, 0) %>
                       </div>
                     <% end %>
                   </div>
@@ -885,7 +858,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
                     <!-- USD Conversion Indicator -->
                     <%= if account.currency != "USD" and Map.has_key?(@balances, account.id) do %>
                       <div class="text-right mt-1 pr-2 text-xs opacity-40 font-mono-numbers">
-                        ≈ US$ <%= @balances[account.id].amount_usd %>
+                        ≈ US$ <%= Decimal.round(@balances[account.id].amount_usd, 0) %>
                       </div>
                     <% end %>
                   </div>
@@ -1114,7 +1087,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
           phx-click="toggle_preference"
           phx-value-type="investments"
           class={"w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between group #{
-            if @preferences.investments, do: "border-primary bg-primary/5", else: "border-base-200 hover:border-primary/50"
+            if @preferences.investments, do: "border-primary bg-primary/5 shadow-lg shadow-primary/5", else: "border-base-200/50 bg-base-200/10 hover:border-primary/30 hover:bg-base-200/20"
           }"}
         >
           <div class="flex items-center gap-4">
@@ -1133,9 +1106,13 @@ defmodule PerfiDeltaWeb.OnboardingLive do
             </div>
           </div>
           <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all #{
-            if @preferences.investments, do: "border-primary bg-primary", else: "border-base-300"
+            if @preferences.investments, do: "border-primary bg-primary text-primary-content", else: "border-base-300 text-base-content/20 group-hover:border-primary/50 group-hover:text-primary/50"
           }"}>
-            <span class="hero-check text-white text-xs"></span>
+            <%= if @preferences.investments do %>
+              <span class="hero-check text-xs"></span>
+            <% else %>
+              <span class="hero-plus text-xs"></span>
+            <% end %>
           </div>
         </button>
 
@@ -1143,7 +1120,7 @@ defmodule PerfiDeltaWeb.OnboardingLive do
           phx-click="toggle_preference"
           phx-value-type="debts"
           class={"w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between group #{
-            if @preferences.debts, do: "border-primary bg-primary/5", else: "border-base-200 hover:border-primary/50"
+            if @preferences.debts, do: "border-primary bg-primary/5 shadow-lg shadow-primary/5", else: "border-base-200/50 bg-base-200/10 hover:border-primary/30 hover:bg-base-200/20"
           }"}
         >
           <div class="flex items-center gap-4">
@@ -1162,9 +1139,13 @@ defmodule PerfiDeltaWeb.OnboardingLive do
             </div>
           </div>
           <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all #{
-            if @preferences.debts, do: "border-primary bg-primary", else: "border-base-300"
+            if @preferences.debts, do: "border-primary bg-primary text-primary-content", else: "border-base-300 text-base-content/20 group-hover:border-primary/50 group-hover:text-primary/50"
           }"}>
-            <span class="hero-check text-white text-xs"></span>
+            <%= if @preferences.debts do %>
+              <span class="hero-check text-xs"></span>
+            <% else %>
+              <span class="hero-plus text-xs"></span>
+            <% end %>
           </div>
         </button>
       </div>
@@ -1185,10 +1166,14 @@ defmodule PerfiDeltaWeb.OnboardingLive do
         <button
           phx-click="show_form"
           phx-value-type="investment"
-          class="w-full p-4 rounded-xl border-2 border-dashed border-base-300 hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-3 group"
+          class="w-full p-6 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 hover:border-primary hover:bg-primary/10 transition-all flex items-center justify-center gap-4 group"
         >
-          <span class="hero-plus text-xl text-base-content/50 group-hover:text-primary transition-colors"></span>
-          <span class="font-bold text-base-content/70 group-hover:text-primary transition-colors">Agregar Inversión</span>
+          <div class="w-10 h-10 rounded-full bg-primary text-primary-content flex items-center justify-center shadow-lg shadow-primary/20 transition-transform group-hover:scale-110">
+            <span class="hero-plus text-xl"></span>
+          </div>
+          <span class="font-bold text-lg text-primary group-hover:underline decoration-2 underline-offset-4">
+            Agregar mi primera inversión
+          </span>
         </button>
       </div>
 
@@ -1379,35 +1364,6 @@ defmodule PerfiDeltaWeb.OnboardingLive do
     end)
   end
 
-  defp format_compact_usd(decimal_usd) do
-    abs_value = Decimal.abs(decimal_usd)
-    is_negative = Decimal.negative?(decimal_usd)
-    prefix = if is_negative, do: "-", else: ""
-
-    formatted =
-      cond do
-        Decimal.compare(abs_value, Decimal.new(1_000_000)) != :lt ->
-          abs_value
-          |> Decimal.div(Decimal.new(1_000_000))
-          |> Decimal.round(1)
-          |> Decimal.to_string()
-          |> Kernel.<>("M")
-
-        Decimal.compare(abs_value, Decimal.new(1_000)) != :lt ->
-          abs_value
-          |> Decimal.div(Decimal.new(1_000))
-          |> Decimal.round(1)
-          |> Decimal.to_string()
-          |> Kernel.<>("K")
-
-        true ->
-          abs_value
-          |> Decimal.round(0)
-          |> Decimal.to_string()
-      end
-
-    "US$ #{prefix}#{formatted}"
-  end
 
   defp format_amount_parts(decimal_usd) do
     abs_value = Decimal.abs(decimal_usd)

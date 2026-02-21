@@ -88,7 +88,7 @@ defmodule PerfiDeltaWeb.UserLive.Registration do
     socket =
       socket
       |> assign_form(changeset)
-      |> assign(show_resend_link: false)
+      |> assign(show_resend_link: false, theme: "dark")
 
     {:ok, socket}
   end
